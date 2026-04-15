@@ -7,11 +7,9 @@ import com.bookstore.review.dto.ReviewResponse;
 import com.bookstore.review.dto.ReviewUpdateRequest;
 import com.bookstore.review.entity.Review;
 import com.bookstore.review.exception.DuplicateReviewException;
-import com.bookstore.review.exception.ForbiddenReviewAccessException;
 import com.bookstore.review.exception.ReviewNotFoundException;
 import com.bookstore.review.model.ReviewSortOption;
 import com.bookstore.review.repository.ReviewRepository;
-import com.bookstore.review.security.SecurityContextFacade;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,23 +24,15 @@ import java.time.Instant;
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
-    private final SecurityContextFacade securityContextFacade;
 
-    public ReviewService(ReviewRepository reviewRepository, SecurityContextFacade securityContextFacade) {
+    public ReviewService(ReviewRepository reviewRepository) {
         this.reviewRepository = reviewRepository;
-        this.securityContextFacade = securityContextFacade;
     }
 
     @Transactional
     public ReviewResponse create(ReviewCreateRequest request) {
-        // On utilise toujours l'ID de l'utilisateur authentifié (depuis le token JWT ou Keycloak),
-        // jamais celui fourni par le client dans le body — c'est plus sécurisé.
-        Long authUserId = securityContextFacade.requireUserId();
-        if (reviewRepository.existsByUserIdAndBookId(authUserId, request.bookId())) {
-            throw new DuplicateReviewException(authUserId, request.bookId());
-        }
         Review review = new Review();
-        review.setUserId(authUserId);
+        review.setUserId(request.userId());
         review.setBookId(request.bookId());
         review.setRating(request.rating());
         review.setComment(request.comment());
@@ -55,7 +45,6 @@ public class ReviewService {
         }
     }
 
-    @Transactional(readOnly = true)
     public PagedReviewsResponse findByBook(
             Long bookId,
             ReviewSortOption sort,
@@ -75,32 +64,21 @@ public class ReviewService {
         );
     }
 
-    @Transactional(readOnly = true)
     public AverageRatingResponse averageForBook(Long bookId) {
         Double avg = reviewRepository.averageRatingByBookId(bookId);
         long count = reviewRepository.countByBookId(bookId);
         return new AverageRatingResponse(bookId, avg != null ? avg : 0.0, count);
     }
 
-    @Transactional
     public ReviewResponse update(Long id, ReviewUpdateRequest request) {
-        Long authUserId = securityContextFacade.requireUserId();
         Review review = reviewRepository.findById(id).orElseThrow(() -> new ReviewNotFoundException(id));
-        if (!review.getUserId().equals(authUserId)) {
-            throw new ForbiddenReviewAccessException("You can only update your own review");
-        }
         review.setRating(request.rating());
         review.setComment(request.comment());
         return toResponse(reviewRepository.save(review));
     }
 
-    @Transactional
     public void delete(Long id) {
-        Long authUserId = securityContextFacade.requireUserId();
         Review review = reviewRepository.findById(id).orElseThrow(() -> new ReviewNotFoundException(id));
-        if (!review.getUserId().equals(authUserId)) {
-            throw new ForbiddenReviewAccessException("You can only delete your own review");
-        }
         reviewRepository.delete(review);
     }
 

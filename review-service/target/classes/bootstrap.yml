@@ -1,7 +1,0 @@
-spring:
-  application:
-    name: review-service  # Doit correspondre exactement au nom du fichier dans config-repo
-  cloud:
-    config:
-      uri: http://localhost:8888  # Adresse du Config Server
-      fail-fast: false            # Si Config Server indisponible, continue avec application.yml local
