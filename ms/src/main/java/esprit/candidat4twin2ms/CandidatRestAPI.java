@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/candidats/orders")
+@RequestMapping("/orders")
 public class CandidatRestAPI {
     public String title = "Hello";
     @Autowired

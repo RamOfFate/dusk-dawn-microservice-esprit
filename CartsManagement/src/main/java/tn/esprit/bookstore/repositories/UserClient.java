@@ -8,7 +8,7 @@ import tn.esprit.bookstore.dto.User;
 
 
 
-@FeignClient(name = "UserService")
+@FeignClient(name = "usermicroservice")
 public interface UserClient {
 
     @GetMapping("/users/{id}")
