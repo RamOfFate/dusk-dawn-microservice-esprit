@@ -4,6 +4,12 @@ services:
       context: ./eureka-server
     image: bookshop/eureka-server:local
     container_name: eureka-server
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     ports:
       - "8761:8761"
     restart: unless-stopped
@@ -14,21 +20,44 @@ services:
     image: bookshop/config-server:local
     container_name: bookshop-config-server
     depends_on:
-      - eureka-server
+      eureka-server:
+        condition: service_healthy
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     ports:
       - "8888:8888"
     restart: unless-stopped
 
   mysql-db:
-    image: mysql:8.4
+    image: mysql
     container_name: mysql-db
-    command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_ROOT_PASSWORD=rootpass
       - MYSQL_USER=ram
       - MYSQL_PASSWORD=password123
+      - MYSQL_DATABASE=users_db
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-prootpass",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     ports:
       - "3306:3306"
     volumes:
@@ -42,6 +71,12 @@ services:
       - POSTGRES_DB=job_ms
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=root
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     ports:
       - "5432:5432"
     volumes:
@@ -51,6 +86,12 @@ services:
   mongo-db:
     image: mongo:7
     container_name: mongo-db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     ports:
       - "27017:27017"
     volumes:
@@ -63,7 +104,8 @@ services:
     image: bookshop/recommendation-search-service:local
     container_name: recommendation-search-service
     depends_on:
-      - mongo-db
+      mongo-db:
+        condition: service_healthy
     environment:
       - PORT=8083
       - MONGODB_URI=mongodb://mongo-db:27017/recommendation_search
@@ -77,8 +119,10 @@ services:
     image: bookshop/bookshop-service:local
     container_name: bookshop-service
     depends_on:
-      - eureka-server
-      - bookshop-config-server
+      eureka-server:
+        condition: service_healthy
+      bookshop-config-server:
+        condition: service_healthy
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
@@ -94,9 +138,12 @@ services:
     image: bookshop/usermicroservice:local
     container_name: usermicroservice
     depends_on:
-      - mysql-db
-      - eureka-server
-      - bookshop-config-server
+      mysql-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      bookshop-config-server:
+        condition: service_healthy
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
@@ -113,9 +160,12 @@ services:
     image: bookshop/candidat-service:local
     container_name: candidat-service
     depends_on:
-      - postgres-db
-      - eureka-server
-      - bookshop-config-server
+      postgres-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      bookshop-config-server:
+        condition: service_healthy
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
@@ -132,8 +182,10 @@ services:
     image: bookshop/cartmanagement:local
     container_name: cartmanagement
     depends_on:
-      - eureka-server
-      - bookshop-config-server
+      eureka-server:
+        condition: service_healthy
+      bookshop-config-server:
+        condition: service_healthy
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
@@ -149,9 +201,12 @@ services:
     image: bookshop/review-service:local
     container_name: review-service
     depends_on:
-      - mysql-db
-      - eureka-server
-      - bookshop-config-server
+      mysql-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      bookshop-config-server:
+        condition: service_healthy
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
@@ -168,14 +223,22 @@ services:
     image: bookshop/api-gateway:local
     container_name: api-gateway
     depends_on:
-      - eureka-server
-      - bookshop-config-server
-      - bookshop-service
-      - usermicroservice
-      - candidat-service
-      - cartmanagement
-      - review-service
-      - recommendation-search-service
+      eureka-server:
+        condition: service_healthy
+      bookshop-config-server:
+        condition: service_healthy
+      bookshop-service:
+        condition: service_started
+      usermicroservice:
+        condition: service_started
+      candidat-service:
+        condition: service_started
+      cartmanagement:
+        condition: service_started
+      review-service:
+        condition: service_started
+      recommendation-search-service:
+        condition: service_started
     environment:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/

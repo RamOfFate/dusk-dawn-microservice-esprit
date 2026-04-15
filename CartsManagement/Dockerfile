@@ -1,4 +1,4 @@
-FROM openjdk:21
+FROM eclipse-temurin:21-jdk
 EXPOSE 8084
 # Optional: include local H2 file directory if present
 ADD Database/ /Database/
