@@ -19,9 +19,16 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { listUsers } from "~/server/services/users";
+import { ErrorState } from "~/app/_components/error-state";
 
 export default async function UsersPage() {
-  const users = await listUsers();
+  let users: Awaited<ReturnType<typeof listUsers>> = [];
+
+  try {
+    users = await listUsers();
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load users" />;
+  }
 
   return (
     <div className="space-y-8">

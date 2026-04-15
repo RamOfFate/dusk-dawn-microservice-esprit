@@ -1,6 +1,7 @@
 import "server-only";
 
-import { ApiError, apiGet, apiPost } from "~/server/api-client";
+import { ApiError } from "~/lib/api-error";
+import { apiGet, apiPost } from "~/server/api-client";
 
 export type AverageRatingResponse = {
   bookId: number;

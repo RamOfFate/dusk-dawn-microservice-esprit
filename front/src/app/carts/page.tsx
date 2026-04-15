@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { listCarts, listCartsByCustomer } from "~/server/services/carts";
+import { ErrorState } from "~/app/_components/error-state";
 
 export default async function CartsPage({
   searchParams,
@@ -29,10 +30,22 @@ export default async function CartsPage({
   searchParams: Promise<{ customerId?: string }>;
 }) {
   const { customerId } = await searchParams;
-  const customerIdNum = customerId ? Number(customerId) : null;
-  const carts = Number.isFinite(customerIdNum)
-    ? await listCartsByCustomer(customerIdNum as number)
-    : await listCarts();
+  const customerIdNum = customerId ? Number(customerId) : undefined;
+  const activeCustomerId =
+    customerIdNum !== undefined && Number.isFinite(customerIdNum)
+      ? customerIdNum
+      : undefined;
+  let carts: Awaited<ReturnType<typeof listCarts>> = [];
+
+  try {
+    if (activeCustomerId !== undefined) {
+      carts = await listCartsByCustomer(activeCustomerId);
+    } else {
+      carts = await listCarts();
+    }
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load carts" />;
+  }
 
   return (
     <div className="space-y-8">
@@ -86,8 +99,8 @@ export default async function CartsPage({
       <Card>
         <CardHeader>
           <CardTitle>
-            {Number.isFinite(customerIdNum)
-              ? `Carts for customer ${customerIdNum}`
+            {activeCustomerId !== undefined
+              ? `Carts for customer ${activeCustomerId}`
               : "All carts"}
           </CardTitle>
           <CardDescription>

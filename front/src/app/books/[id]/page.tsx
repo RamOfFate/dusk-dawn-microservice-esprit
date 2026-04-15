@@ -14,6 +14,7 @@ import {
 import { Separator } from "~/components/ui/separator";
 import { listBooks } from "~/server/services/bookshop";
 import { getAverageRating } from "~/server/services/reviews";
+import { ErrorState } from "~/app/_components/error-state";
 
 export default async function BookDetailsPage({
   params,
@@ -21,13 +22,26 @@ export default async function BookDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const books = await listBooks();
+  let books: Awaited<ReturnType<typeof listBooks>> = [];
+
+  try {
+    books = await listBooks();
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load this book" />;
+  }
   const book = books.find((b) => b.id === id);
   if (!book) notFound();
 
   const numericBookId = Number(id);
   const canLoadReviews = Number.isFinite(numericBookId);
-  const rating = canLoadReviews ? await getAverageRating(numericBookId) : null;
+  let rating: Awaited<ReturnType<typeof getAverageRating>> | null = null;
+  if (canLoadReviews) {
+    try {
+      rating = await getAverageRating(numericBookId);
+    } catch {
+      rating = null;
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -84,12 +98,14 @@ export default async function BookDetailsPage({
             <div className="text-2xl font-semibold">
               {book.price != null ? `${book.price.toFixed(2)} DT` : "N/A"}
             </div>
-            <Button variant="secondary" className="w-full" disabled>
-              Add to cart
+            <Button asChild variant="secondary" className="w-full">
+              <Link href={`/checkout/${encodeURIComponent(book.id)}`}>
+                Checkout
+              </Link>
             </Button>
             <p className="text-muted-foreground text-xs">
-              Cart items are not modeled in the current Cart service; this
-              button is intentionally disabled.
+              Quick checkout will guide you to create a cart header and an order
+              using the current microservices.
             </p>
           </CardContent>
         </Card>

@@ -28,7 +28,7 @@ export default async function ReviewsIndexPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Open a book's reviews</CardTitle>
+          <CardTitle>Open a book’s reviews</CardTitle>
           <CardDescription>
             Enter a numeric book ID to browse reviews and averages.
           </CardDescription>

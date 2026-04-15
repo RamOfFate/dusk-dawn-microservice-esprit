@@ -19,9 +19,16 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { listOrders } from "~/server/services/orders";
+import { ErrorState } from "~/app/_components/error-state";
 
 export default async function OrdersPage() {
-  const orders = await listOrders();
+  let orders: Awaited<ReturnType<typeof listOrders>> = [];
+
+  try {
+    orders = await listOrders();
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load orders" />;
+  }
 
   return (
     <div className="space-y-8">

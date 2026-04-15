@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { PageHeader } from "~/app/_components/page-header";
 import { Badge } from "~/components/ui/badge";
@@ -27,39 +28,101 @@ import {
   getAverageRating,
   listReviewsByBook,
 } from "~/server/services/reviews";
+import { ErrorState } from "~/app/_components/error-state";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { getFormString } from "~/lib/form-data";
 
 async function createReviewAction(bookId: number, formData: FormData) {
   "use server";
 
-  const userIdRaw = String(formData.get("userId") ?? "").trim();
-  const ratingRaw = String(formData.get("rating") ?? "").trim();
-  const comment = String(formData.get("comment") ?? "").trim();
+  const userIdRaw = getFormString(formData, "userId").trim();
+  const ratingRaw = getFormString(formData, "rating").trim();
+  const comment = getFormString(formData, "comment").trim();
 
   const rating = Number(ratingRaw);
-  if (!Number.isFinite(rating) || rating < 1 || rating > 5) return;
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    const params = new URLSearchParams();
+    params.set("error", "Rating must be a number between 1 and 5.");
+    if (userIdRaw) params.set("userId", userIdRaw);
+    if (comment) params.set("comment", comment);
+    params.set("rating", ratingRaw);
+    redirect(`/reviews/book/${bookId}?${params.toString()}`);
+  }
 
-  await createReview({
-    bookId,
-    userId: userIdRaw ? Number(userIdRaw) : undefined,
-    rating,
-    comment: comment || undefined,
-  });
-
-  revalidatePath(`/reviews/book/${bookId}`);
+  try {
+    await createReview({
+      bookId,
+      userId: userIdRaw ? Number(userIdRaw) : undefined,
+      rating,
+      comment: comment || undefined,
+    });
+    revalidatePath(`/reviews/book/${bookId}`);
+  } catch (e) {
+    const params = new URLSearchParams();
+    params.set(
+      "error",
+      e instanceof Error ? e.message : "Failed to submit review",
+    );
+    if (userIdRaw) params.set("userId", userIdRaw);
+    if (comment) params.set("comment", comment);
+    params.set("rating", String(rating));
+    redirect(`/reviews/book/${bookId}?${params.toString()}`);
+  }
 }
 
 export default async function ReviewsByBookPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ bookId: string }>;
+  searchParams: Promise<{
+    error?: string;
+    userId?: string;
+    rating?: string;
+    comment?: string;
+  }>;
 }) {
   const { bookId } = await params;
+  const sp = await searchParams;
   const numericBookId = Number(bookId);
 
-  const [avg, paged] = await Promise.all([
-    getAverageRating(numericBookId),
-    listReviewsByBook(numericBookId, { sort: "latest", page: 0, size: 20 }),
-  ]);
+  if (!Number.isFinite(numericBookId) || numericBookId <= 0) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title="Reviews"
+          description="Review service requires a numeric bookId."
+          actions={
+            <Link
+              className={buttonVariants({ variant: "outline" })}
+              href="/reviews"
+            >
+              Back
+            </Link>
+          }
+        />
+
+        <Alert variant="destructive">
+          <AlertTitle>Invalid book ID</AlertTitle>
+          <AlertDescription>
+            Please provide a positive numeric book ID (example: 1).
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  let avg: Awaited<ReturnType<typeof getAverageRating>> | null = null;
+  let paged: Awaited<ReturnType<typeof listReviewsByBook>> | null = null;
+
+  try {
+    [avg, paged] = await Promise.all([
+      getAverageRating(numericBookId),
+      listReviewsByBook(numericBookId, { sort: "latest", page: 0, size: 20 }),
+    ]);
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load reviews" />;
+  }
 
   return (
     <div className="space-y-8">
@@ -143,6 +206,12 @@ export default async function ReviewsByBookPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {sp.error ? (
+                <Alert variant="destructive" className="mb-3">
+                  <AlertTitle>Couldn’t submit review</AlertTitle>
+                  <AlertDescription>{sp.error}</AlertDescription>
+                </Alert>
+              ) : null}
               <form
                 action={createReviewAction.bind(null, numericBookId)}
                 className="space-y-3"
@@ -154,6 +223,7 @@ export default async function ReviewsByBookPage({
                     name="userId"
                     inputMode="numeric"
                     placeholder="e.g. 1"
+                    defaultValue={sp.userId ?? ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -164,6 +234,7 @@ export default async function ReviewsByBookPage({
                     inputMode="numeric"
                     placeholder="5"
                     required
+                    defaultValue={sp.rating ?? ""}
                   />
                 </div>
                 <div className="space-y-2">
@@ -172,6 +243,7 @@ export default async function ReviewsByBookPage({
                     id="comment"
                     name="comment"
                     placeholder="Optional..."
+                    defaultValue={sp.comment ?? ""}
                   />
                 </div>
                 <Button type="submit">Submit</Button>

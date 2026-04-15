@@ -12,9 +12,17 @@ import {
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
 import { listBooks, listPopularBooks } from "~/server/services/bookshop";
+import { ErrorState } from "~/app/_components/error-state";
 
 export default async function BooksPage() {
-  const [popular, books] = await Promise.all([listPopularBooks(), listBooks()]);
+  let popular: Awaited<ReturnType<typeof listPopularBooks>> = [];
+  let books: Awaited<ReturnType<typeof listBooks>> = [];
+
+  try {
+    [popular, books] = await Promise.all([listPopularBooks(), listBooks()]);
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load books" />;
+  }
 
   return (
     <div className="space-y-8">
