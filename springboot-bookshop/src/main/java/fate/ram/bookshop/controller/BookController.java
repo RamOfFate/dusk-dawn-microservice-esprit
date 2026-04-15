@@ -27,4 +27,9 @@ public class BookController{
 
     @GetMapping("/popular")
     public List<Book> getPopularBooks() {return bookService.getPopularBooks();}
+
+    @GetMapping("/ping")
+    public String ping() {
+        return "pong";
+    }
 }
