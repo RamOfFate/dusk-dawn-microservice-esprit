@@ -1,0 +1,191 @@
+services:
+  eureka-server:
+    build:
+      context: ./eureka-server
+    image: bookshop/eureka-server:local
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    restart: unless-stopped
+
+  bookshop-config-server:
+    build:
+      context: ./bookshop-config-server
+    image: bookshop/config-server:local
+    container_name: bookshop-config-server
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+    ports:
+      - "8888:8888"
+    restart: unless-stopped
+
+  mysql-db:
+    image: mysql:8.4
+    container_name: mysql-db
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_USER=ram
+      - MYSQL_PASSWORD=password123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:16
+    container_name: postgres-db
+    environment:
+      - POSTGRES_DB=job_ms
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  mongo-db:
+    image: mongo:7
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  recommendation-search-service:
+    build:
+      context: ./recommendation-search-service
+    image: bookshop/recommendation-search-service:local
+    container_name: recommendation-search-service
+    depends_on:
+      - mongo-db
+    environment:
+      - PORT=8083
+      - MONGODB_URI=mongodb://mongo-db:27017/recommendation_search
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+
+  bookshop-service:
+    build:
+      context: ./springboot-bookshop
+    image: bookshop/bookshop-service:local
+    container_name: bookshop-service
+    depends_on:
+      - eureka-server
+      - bookshop-config-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    ports:
+      - "8080:8080"
+    volumes:
+      - bookshop_h2:/Database
+    restart: unless-stopped
+
+  usermicroservice:
+    build:
+      context: ./microservice
+    image: bookshop/usermicroservice:local
+    container_name: usermicroservice
+    depends_on:
+      - mysql-db
+      - eureka-server
+      - bookshop-config-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/users_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=ram
+      - SPRING_DATASOURCE_PASSWORD=password123
+    ports:
+      - "8095:8095"
+    restart: unless-stopped
+
+  candidat-service:
+    build:
+      context: ./ms
+    image: bookshop/candidat-service:local
+    container_name: candidat-service
+    depends_on:
+      - postgres-db
+      - eureka-server
+      - bookshop-config-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/job_ms
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=root
+    ports:
+      - "8089:8089"
+    restart: unless-stopped
+
+  cartmanagement:
+    build:
+      context: ./CartsManagement
+    image: bookshop/cartmanagement:local
+    container_name: cartmanagement
+    depends_on:
+      - eureka-server
+      - bookshop-config-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    ports:
+      - "8084:8084"
+    volumes:
+      - cart_h2:/Database
+    restart: unless-stopped
+
+  review-service:
+    build:
+      context: ./review-service
+    image: bookshop/review-service:local
+    container_name: review-service
+    depends_on:
+      - mysql-db
+      - eureka-server
+      - bookshop-config-server
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/bookstore_reviews?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&characterEncoding=utf8
+      - SPRING_DATASOURCE_USERNAME=ram
+      - SPRING_DATASOURCE_PASSWORD=password123
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+    image: bookshop/api-gateway:local
+    container_name: api-gateway
+    depends_on:
+      - eureka-server
+      - bookshop-config-server
+      - bookshop-service
+      - usermicroservice
+      - candidat-service
+      - cartmanagement
+      - review-service
+      - recommendation-search-service
+    environment:
+      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    ports:
+      - "8060:8060"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  postgres_data:
+  mongo_data:
+  bookshop_h2:
+  cart_h2:

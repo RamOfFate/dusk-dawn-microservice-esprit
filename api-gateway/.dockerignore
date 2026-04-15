@@ -1,4 +1,6 @@
 target/*
 !target/*.jar
-*.log
 .git
+.gitignore
+.idea
+*.iml
