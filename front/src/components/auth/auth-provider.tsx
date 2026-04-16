@@ -27,7 +27,16 @@ function getRealmRoles(tokenParsed: unknown): string[] {
   const roles = (realmAccess as { roles?: unknown }).roles;
   if (!Array.isArray(roles)) return [];
 
-  return roles.filter((r): r is string => typeof r === "string");
+  const cleaned = roles
+    .filter((r): r is string => typeof r === "string")
+    .map((r) => r.trim())
+    .filter(Boolean)
+    // Hide Keycloak built-in/default roles to avoid confusing the UI.
+    .filter((r) => r !== "offline_access")
+    .filter((r) => r !== "uma_authorization")
+    .filter((r) => !r.startsWith("default-roles-"));
+
+  return Array.from(new Set(cleaned));
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
