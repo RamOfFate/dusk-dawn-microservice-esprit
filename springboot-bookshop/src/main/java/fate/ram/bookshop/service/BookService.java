@@ -1,13 +1,18 @@
 package fate.ram.bookshop.service;
 
+import fate.ram.bookshop.integration.reviews.ReviewRatingsClient;
 import fate.ram.bookshop.model.Book;
 import fate.ram.bookshop.model.Category;
 import fate.ram.bookshop.repository.BookRepository;
 import fate.ram.bookshop.repository.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class BookService {
@@ -17,6 +22,9 @@ public class BookService {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ReviewRatingsClient reviewRatingsClient;
 
     public List<Book> getAllBooks() {
         return bookRepository.findAll();
@@ -76,6 +84,36 @@ public class BookService {
     }
 
     public List<Book> getPopularBooks() {
-        return bookRepository.findTop10ByOrderByViewsDesc();
+        // Popularity is determined primarily by rating (avg desc, count desc), falling back to views.
+        // We consider the full catalog so "popular" reflects the best-reviewed books, not just the most-viewed ones.
+        List<Book> candidates = bookRepository.findAll();
+
+        if (candidates.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> ids = candidates.stream().map(Book::getId).toList();
+
+        try {
+            Map<Long, ReviewRatingsClient.BookRating> ratings = reviewRatingsClient.getAverageRatings(ids);
+
+            Comparator<Book> byPopularity = Comparator
+                    .comparingDouble((Book b) -> ratings.getOrDefault(b.getId(), ReviewRatingsClient.BookRating.ZERO).averageRating())
+                    .reversed()
+                    .thenComparing(Comparator.comparingLong(
+                            (Book b) -> ratings.getOrDefault(b.getId(), ReviewRatingsClient.BookRating.ZERO).reviewCount()
+                    ).reversed())
+                    .thenComparing(Comparator.comparingInt(Book::getViews).reversed());
+
+            return candidates.stream()
+                    .sorted(byPopularity)
+                    .limit(10)
+                    .toList();
+        } catch (Exception ex) {
+            // If review-service is unavailable, keep a deterministic views-based fallback.
+            return bookRepository
+                    .findAll(PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "views")))
+                    .getContent();
+        }
     }
 }

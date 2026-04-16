@@ -1,5 +1,6 @@
 package com.bookstore.review.web;
 
+import com.bookstore.review.dto.AverageRatingBatchRequest;
 import com.bookstore.review.dto.AverageRatingResponse;
 import com.bookstore.review.dto.PagedReviewsResponse;
 import com.bookstore.review.dto.ReviewCreateRequest;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/reviews")
@@ -53,6 +56,11 @@ public class ReviewController {
     @GetMapping("/book/{bookId}/average")
     public AverageRatingResponse average(@PathVariable Long bookId) {
         return reviewService.averageForBook(bookId);
+    }
+
+    @PostMapping("/average/batch")
+    public List<AverageRatingResponse> averageBatch(@RequestBody AverageRatingBatchRequest request) {
+        return reviewService.averageForBooks(request != null ? request.bookIds() : null);
     }
 
     @PutMapping("/{id}")

@@ -6,10 +6,14 @@ import com.bookstore.review.dto.ReviewCreateRequest;
 import com.bookstore.review.dto.ReviewResponse;
 import com.bookstore.review.dto.ReviewUpdateRequest;
 import com.bookstore.review.entity.Review;
+import com.bookstore.review.exception.BookNotFoundException;
+import com.bookstore.review.exception.BookshopUnavailableException;
 import com.bookstore.review.exception.DuplicateReviewException;
 import com.bookstore.review.exception.ReviewNotFoundException;
+import com.bookstore.review.integration.bookshop.BookshopFeignClient;
 import com.bookstore.review.model.ReviewSortOption;
 import com.bookstore.review.repository.ReviewRepository;
+import feign.FeignException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,18 +23,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
+    private final BookshopFeignClient bookshopClient;
 
-    public ReviewService(ReviewRepository reviewRepository) {
+    public ReviewService(ReviewRepository reviewRepository, BookshopFeignClient bookshopClient) {
         this.reviewRepository = reviewRepository;
+        this.bookshopClient = bookshopClient;
     }
 
     @Transactional
     public ReviewResponse create(ReviewCreateRequest request) {
+        assertBookExists(request.bookId());
+
         Review review = new Review();
         review.setCustomerName(request.customerName());
         review.setBookId(request.bookId());
@@ -70,6 +82,39 @@ public class ReviewService {
         return new AverageRatingResponse(bookId, avg != null ? avg : 0.0, count);
     }
 
+    public List<AverageRatingResponse> averageForBooks(List<Long> bookIds) {
+        if (bookIds == null || bookIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> normalized = bookIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (normalized.isEmpty()) {
+            return List.of();
+        }
+
+        List<ReviewRepository.BookRatingAggregate> aggs = reviewRepository.aggregateRatingsByBookIds(normalized);
+        Map<Long, AverageRatingResponse> byBookId = new HashMap<>(aggs.size());
+
+        for (ReviewRepository.BookRatingAggregate a : aggs) {
+            Long bookId = a.getBookId();
+            if (bookId == null) {
+                continue;
+            }
+            double avg = a.getAverageRating() != null ? a.getAverageRating() : 0.0;
+            long count = a.getReviewCount() != null ? a.getReviewCount() : 0L;
+            byBookId.put(bookId, new AverageRatingResponse(bookId, avg, count));
+        }
+
+        // Preserve input order and include zeros for books with no reviews.
+        return normalized.stream()
+                .map(id -> byBookId.getOrDefault(id, new AverageRatingResponse(id, 0.0, 0L)))
+                .toList();
+    }
+
     public ReviewResponse update(Long id, ReviewUpdateRequest request) {
         Review review = reviewRepository.findById(id).orElseThrow(() -> new ReviewNotFoundException(id));
         review.setRating(request.rating());
@@ -95,6 +140,21 @@ public class ReviewService {
             return 20;
         }
         return Math.min(size, 100);
+    }
+
+    private void assertBookExists(Long bookId) {
+        if (bookId == null) {
+            throw new BookNotFoundException(null);
+        }
+
+        try {
+            // We only need to know that it exists.
+            bookshopClient.getBookById(bookId);
+        } catch (FeignException.NotFound ex) {
+            throw new BookNotFoundException(bookId);
+        } catch (FeignException ex) {
+            throw new BookshopUnavailableException("Failed to validate book via bookshop-service", ex);
+        }
     }
 
     private ReviewResponse toResponse(Review r) {

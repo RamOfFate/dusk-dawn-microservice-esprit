@@ -1,7 +1,11 @@
 import Link from "next/link";
 
-import { PageHeader } from "~/app/_components/page-header";
+import { BookCover } from "~/app/_components/book-cover";
+import { CategoryBadge } from "~/app/_components/category-badge";
 import { ErrorState } from "~/app/_components/error-state";
+import { PageHeader } from "~/app/_components/page-header";
+import { Badge } from "~/components/ui/badge";
+import { buttonVariants } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -9,8 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { buttonVariants } from "~/components/ui/button";
-import { Badge } from "~/components/ui/badge";
 import { listCategories, listPopularBooks } from "~/server/services/bookshop";
 
 export default async function Home() {
@@ -49,12 +51,15 @@ export default async function Home() {
             </div>
           }
         />
+
         {categories.length ? (
           <div className="flex flex-wrap gap-2">
             {categories.slice(0, 8).map((c) => (
-              <Badge key={c.id} variant="secondary">
-                {c.name}
-              </Badge>
+              <CategoryBadge
+                key={String(c.id)}
+                category={c}
+                href={`/books?categoryId=${encodeURIComponent(String(c.id))}`}
+              />
             ))}
           </div>
         ) : null}
@@ -66,7 +71,7 @@ export default async function Home() {
             <div>
               <CardTitle>Popular right now</CardTitle>
               <CardDescription>
-                Most viewed books from the Bookshop service.
+                Top-rated books (bookshop-service uses review-service ratings).
               </CardDescription>
             </div>
             <Badge variant="outline">Top {popular.length}</Badge>
@@ -76,11 +81,21 @@ export default async function Home() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {popular.map((b) => (
               <Card key={b.id} className="overflow-hidden">
+                <BookCover
+                  title={b.title}
+                  imageUrl={b.imageUrl}
+                  fallbackColor={b.category?.color}
+                />
                 <CardHeader>
                   <CardTitle className="line-clamp-1">{b.title}</CardTitle>
                   <CardDescription className="line-clamp-1">
                     {b.author ?? "Unknown author"}
                   </CardDescription>
+                  {b.category ? (
+                    <div className="pt-1">
+                      <CategoryBadge category={b.category} />
+                    </div>
+                  ) : null}
                 </CardHeader>
                 <CardContent className="flex items-center justify-between">
                   <div className="text-muted-foreground text-sm">

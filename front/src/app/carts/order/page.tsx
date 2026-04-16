@@ -27,7 +27,7 @@ import {
 } from "~/components/ui/table";
 import { Textarea } from "~/components/ui/textarea";
 import { useAuth } from "~/components/auth/auth-provider";
-import { gatewayDelete, gatewayGet, gatewayPost } from "~/lib/gateway-client";
+import { gatewayGet, gatewayPost } from "~/lib/gateway-client";
 
 type Cart = {
   id: number;
@@ -237,8 +237,10 @@ export default function CartOrderPage() {
     }
 
     try {
+      const endpoint = isSingle && cartId != null ? `/carts/order?cartId=${cartId}` : "/carts/order";
+
       await gatewayPost(
-        "/orders",
+        endpoint,
         {
           customerName,
           totalAmount: orderTotal,
@@ -248,11 +250,7 @@ export default function CartOrderPage() {
         token,
       );
 
-      await Promise.all(
-        computedLines.map((line) => gatewayDelete(`/carts/${line.cart.id}`, token)),
-      );
-
-      setSuccess("Order placed. Cart items removed.");
+      setSuccess("Order placed.");
 
       window.setTimeout(() => {
         router.push("/carts");

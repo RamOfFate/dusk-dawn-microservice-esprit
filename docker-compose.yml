@@ -137,6 +137,20 @@ services:
       - ./keycloak/import:/opt/keycloak/data/import:ro
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    restart: unless-stopped
+
   recommendation-search-service:
     build:
       context: ./recommendation-search-service
@@ -202,6 +216,14 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/users_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=rootpass
+
+      # Keycloak Admin API (for syncing Keycloak users into MySQL)
+      - KEYCLOAK_URL=http://keycloak:8081
+      - KEYCLOAK_ADMIN_AUTH_REALM=master
+      - KEYCLOAK_REALM=bookshop
+      - KEYCLOAK_ADMIN_USERNAME=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
     ports:
       - "8095:8095"
     restart: unless-stopped
@@ -218,6 +240,8 @@ services:
         condition: service_healthy
       bookshop-config-server:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - CONFIG_SERVER_URL=http://bookshop-config-server:8888
       - SPRING_CLOUD_CONFIG_FAIL_FAST=true
@@ -228,6 +252,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/job_ms
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
     ports:
       - "8089:8089"
     restart: unless-stopped
@@ -242,6 +268,8 @@ services:
         condition: service_healthy
       bookshop-config-server:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     environment:
       - CONFIG_SERVER_URL=http://bookshop-config-server:8888
       - SPRING_CLOUD_CONFIG_FAIL_FAST=true
@@ -249,6 +277,8 @@ services:
       - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
       - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
     ports:
       - "8084:8084"
     volumes:

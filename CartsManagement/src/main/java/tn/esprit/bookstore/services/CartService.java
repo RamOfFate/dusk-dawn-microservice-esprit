@@ -88,4 +88,22 @@ public class CartService {
         }
         return false;
     }
+
+    public Optional<Cart> getCartById(Integer id) {
+        return repo.findById(id);
+    }
+
+    /**
+     * Deletes all carts for a given customer name.
+     *
+     * @return number of carts deleted
+     */
+    public int deleteCartsByCustomerName(String customerName) {
+        List<Cart> carts = repo.findByCustomerName(customerName);
+        int count = carts.size();
+        if (count > 0) {
+            repo.deleteAll(carts);
+        }
+        return count;
+    }
 }

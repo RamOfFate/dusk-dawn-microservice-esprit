@@ -36,6 +36,7 @@ export default function AdminEditUserPage() {
   const userId = typeof userIdRaw === "string" ? Number(userIdRaw) : NaN;
 
   const [user, setUser] = React.useState<User | null>(null);
+  const [newPassword, setNewPassword] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
@@ -80,7 +81,15 @@ export default function AdminEditUserPage() {
     setError(null);
 
     try {
-      const body = { name: user.name, email: user.email, role: user.role };
+      const body: Record<string, unknown> = {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      };
+      if (newPassword.trim()) {
+        body.password = newPassword;
+      }
+
       await gatewayPut(`/users/${userId}`, body, token);
       router.push("/admin/users");
     } catch (err) {
@@ -120,7 +129,7 @@ export default function AdminEditUserPage() {
     <div className="space-y-8">
       <PageHeader
         title={loading ? "Edit user" : `Edit user #${user?.id ?? userId}`}
-        description="Update user fields (name/email/role)."
+        description="Update user fields (mirrored to Keycloak)."
         actions={<Badge variant="outline">Admin</Badge>}
       />
 
@@ -128,7 +137,8 @@ export default function AdminEditUserPage() {
         <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Password updates are not supported by this backend.
+            Changes are applied in Keycloak. Leave password blank to keep it
+            unchanged.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -162,7 +172,7 @@ export default function AdminEditUserPage() {
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Email (used to log in)</Label>
                   <Input
                     id="email"
                     type="email"
@@ -171,6 +181,17 @@ export default function AdminEditUserPage() {
                       setUser((u) => (u ? { ...u, email: e.target.value } : u))
                     }
                     required
+                  />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="password">New password (optional)</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Leave empty to keep current password"
                   />
                 </div>
               </div>

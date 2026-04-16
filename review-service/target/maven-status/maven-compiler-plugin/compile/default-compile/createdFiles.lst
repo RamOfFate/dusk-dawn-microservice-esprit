@@ -1,0 +1,6 @@
+com/bookstore/review/integration/bookshop/BookshopFeignClient$BookDto.class
+com/bookstore/review/exception/BookNotFoundException.class
+com/bookstore/review/dto/AverageRatingBatchRequest.class
+com/bookstore/review/exception/BookshopUnavailableException.class
+com/bookstore/review/integration/bookshop/BookshopFeignClient.class
+com/bookstore/review/repository/ReviewRepository$BookRatingAggregate.class

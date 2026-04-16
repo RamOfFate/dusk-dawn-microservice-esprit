@@ -77,7 +77,7 @@ export default function AdminCreateUserPage() {
         <CardHeader>
           <CardTitle>Details</CardTitle>
           <CardDescription>
-            Password is only used on create (updates ignore it).
+            User creation is mirrored to Keycloak (password is set there).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -109,7 +109,7 @@ export default function AdminCreateUserPage() {
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Email (used to log in)</Label>
                 <Input
                   id="email"
                   type="email"
@@ -122,7 +122,7 @@ export default function AdminCreateUserPage() {
               </div>
 
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Password (used to log in)</Label>
                 <Input
                   id="password"
                   type="password"

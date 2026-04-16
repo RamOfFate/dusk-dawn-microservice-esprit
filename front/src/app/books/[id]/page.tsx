@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BookCover } from "~/app/_components/book-cover";
+import { CategoryBadge } from "~/app/_components/category-badge";
 import { PageHeader } from "~/app/_components/page-header";
 import { Badge } from "~/components/ui/badge";
 import { Button, buttonVariants } from "~/components/ui/button";
@@ -84,8 +86,8 @@ export default async function BookDetailsPage({
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              {book.category?.name ? (
-                <Badge variant="secondary">{book.category.name}</Badge>
+              {book.category ? (
+                <CategoryBadge category={book.category} />
               ) : (
                 <Badge variant="outline">No category</Badge>
               )}
@@ -105,7 +107,12 @@ export default async function BookDetailsPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
+          <BookCover
+            title={book.title}
+            imageUrl={book.imageUrl}
+            fallbackColor={book.category?.color}
+          />
           <CardHeader>
             <CardTitle>Pricing</CardTitle>
             <CardDescription>Current price for this e-book.</CardDescription>

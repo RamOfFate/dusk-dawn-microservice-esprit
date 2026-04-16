@@ -4,8 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import bookshop.shared.messaging.OrderCreateRequest;
+import bookshop.shared.messaging.OrderCreateResponse;
 import tn.esprit.bookstore.entities.Cart;
 import tn.esprit.bookstore.dto.User;
+import tn.esprit.bookstore.messaging.OrdersMessagingClient;
 import tn.esprit.bookstore.services.CartService;
 
 import java.util.List;
@@ -16,10 +19,12 @@ import java.util.Optional;
 public class CartController {
 
     private final CartService cartService;
+    private final OrdersMessagingClient ordersMessagingClient;
 
     @Autowired
-    public CartController(CartService cartService) {
+    public CartController(CartService cartService, OrdersMessagingClient ordersMessagingClient) {
         this.cartService = cartService;
+        this.ordersMessagingClient = ordersMessagingClient;
     }
 
     @GetMapping
@@ -76,5 +81,73 @@ public class CartController {
         return user
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Creates an order via the Orders microservice, using RabbitMQ (RPC-style request/reply),
+     * then clears the corresponding cart items server-side.
+     *
+     * If "cartId" is provided, only that cart item is cleared.
+     * Otherwise, all cart items for the given customerName are cleared.
+     */
+    @PostMapping("/order")
+    public ResponseEntity<OrderCreateResponse> createOrderFromCart(
+            @RequestParam(value = "cartId", required = false) Integer cartId,
+            @RequestBody OrderCreateRequest request
+    ) {
+        if (request == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String customer = request.getCustomerName() != null ? request.getCustomerName().trim() : "";
+        String address = request.getShippingAddress() != null ? request.getShippingAddress().trim() : "";
+
+        if (customer.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        if (address.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        if (request.getTotalAmount() == null || request.getTotalAmount() <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
+        // Pre-check carts before creating the order (avoid creating an order for a missing/empty cart).
+        if (cartId != null) {
+            Optional<Cart> cartOpt = cartService.getCartById(cartId);
+            if (cartOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            Cart cart = cartOpt.get();
+            String cartCustomer = cart.getCustomerName() != null ? cart.getCustomerName().trim() : "";
+            if (!customer.equals(cartCustomer)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
+        } else {
+            List<Cart> carts = cartService.getCartsByCustomerName(customer);
+            if (carts == null || carts.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            }
+        }
+
+        OrderCreateResponse created = ordersMessagingClient.createOrder(request);
+
+        String cartClearStatus = "ok";
+        int deletedCount = 0;
+        try {
+            if (cartId != null) {
+                deletedCount = cartService.deleteCart(cartId) ? 1 : 0;
+            } else {
+                deletedCount = cartService.deleteCartsByCustomerName(customer);
+            }
+        } catch (Exception ex) {
+            cartClearStatus = "failed";
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .header("X-Cart-Clear-Status", cartClearStatus)
+                .header("X-Carts-Deleted", String.valueOf(deletedCount))
+                .body(created);
     }
 }

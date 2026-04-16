@@ -1,4 +1,5 @@
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/ReviewServiceApplication.java
+/home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/dto/AverageRatingBatchRequest.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/dto/AverageRatingResponse.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/dto/PagedReviewsResponse.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/dto/ReviewCreateRequest.java
@@ -6,10 +7,13 @@
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/dto/ReviewUpdateRequest.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/entity/Review.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/AuthenticationRequiredException.java
+/home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/BookNotFoundException.java
+/home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/BookshopUnavailableException.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/DuplicateReviewException.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/ForbiddenReviewAccessException.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/GlobalExceptionHandler.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/exception/ReviewNotFoundException.java
+/home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/integration/bookshop/BookshopFeignClient.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/model/ReviewSortOption.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/repository/ReviewRepository.java
 /home/ram/Documents/GitHub/dusk-dawn-microservice-esprit/review-service/src/main/java/com/bookstore/review/service/ReviewService.java
