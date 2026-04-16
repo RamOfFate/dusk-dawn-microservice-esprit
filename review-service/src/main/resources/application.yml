@@ -2,4 +2,12 @@ spring:
   application:
     name: review-service
   config:
-    import: optional:configserver:http://localhost:8888
+    # Local/dev default: Config Server on the host
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+    # In docker we want Config Server to be mandatory (no optional:)
+    import: configserver:${CONFIG_SERVER_URL:http://bookshop-config-server:8888}

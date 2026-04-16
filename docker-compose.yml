@@ -23,7 +23,7 @@ services:
       eureka-server:
         condition: service_healthy
     environment:
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
       interval: 15s
@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
 
   mysql-db:
-    image: mysql
+    image: mysql:8.0
     container_name: mysql-db
     environment:
       - MYSQL_ROOT_PASSWORD=rootpass
@@ -78,7 +78,7 @@ services:
       retries: 5
       start_period: 30s
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -148,8 +148,8 @@ services:
       - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/users_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=ram
-      - SPRING_DATASOURCE_PASSWORD=password123
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpass
     ports:
       - "8095:8095"
     restart: unless-stopped
@@ -208,11 +208,16 @@ services:
       bookshop-config-server:
         condition: service_healthy
     environment:
-      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - SPRING_PROFILES_ACTIVE=docker
+      - CONFIG_SERVER_URL=http://bookshop-config-server:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/bookstore_reviews?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&characterEncoding=utf8
-      - SPRING_DATASOURCE_USERNAME=ram
-      - SPRING_DATASOURCE_PASSWORD=password123
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpass
     ports:
       - "8082:8082"
     restart: unless-stopped
