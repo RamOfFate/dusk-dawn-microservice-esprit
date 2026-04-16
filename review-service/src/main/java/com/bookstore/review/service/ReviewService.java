@@ -32,7 +32,7 @@ public class ReviewService {
     @Transactional
     public ReviewResponse create(ReviewCreateRequest request) {
         Review review = new Review();
-        review.setUserId(request.userId());
+        review.setCustomerName(request.customerName());
         review.setBookId(request.bookId());
         review.setRating(request.rating());
         review.setComment(request.comment());
@@ -41,7 +41,7 @@ public class ReviewService {
             Review saved = reviewRepository.save(review);
             return toResponse(saved);
         } catch (DataIntegrityViolationException ex) {
-            throw new DuplicateReviewException(request.userId(), request.bookId(), ex);
+            throw new DuplicateReviewException(request.customerName(), request.bookId(), ex);
         }
     }
 
@@ -100,7 +100,7 @@ public class ReviewService {
     private ReviewResponse toResponse(Review r) {
         return new ReviewResponse(
                 r.getId(),
-                r.getUserId(),
+                r.getCustomerName(),
                 r.getBookId(),
                 r.getRating(),
                 r.getComment(),

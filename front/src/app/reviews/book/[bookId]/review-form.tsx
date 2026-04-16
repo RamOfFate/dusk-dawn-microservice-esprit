@@ -11,16 +11,15 @@ import { useAuth } from "~/components/auth/auth-provider";
 import { gatewayPost } from "~/lib/gateway-client";
 
 type ReviewCreateRequest = {
-  userId?: number;
+  customerName: string;
   bookId: number;
   rating: number;
   comment?: string;
 };
 
 export function ReviewForm({ bookId }: { bookId: number }) {
-  const { initialized, isAuthenticated, login, token } = useAuth();
+  const { initialized, isAuthenticated, login, token, username } = useAuth();
 
-  const [userId, setUserId] = React.useState<string>("");
   const [rating, setRating] = React.useState<string>("5");
   const [comment, setComment] = React.useState<string>("");
   const [submitting, setSubmitting] = React.useState(false);
@@ -38,22 +37,22 @@ export function ReviewForm({ bookId }: { bookId: number }) {
       return;
     }
 
-    const userIdNum = userId.trim() ? Number(userId) : undefined;
-    if (userIdNum !== undefined && !Number.isFinite(userIdNum)) {
-      setError("User ID must be a number (or leave it empty).");
-      return;
-    }
-
     if (!token) {
       setError("Please sign in to submit a review.");
       return;
     }
 
+    const customerName = username?.trim() ?? "";
+    if (!customerName) {
+      setError("Missing username in your session. Please re-login.");
+      return;
+    }
+
     const payload: ReviewCreateRequest = {
+      customerName,
       bookId,
       rating: ratingNum,
       comment: comment.trim() || undefined,
-      userId: userIdNum,
     };
 
     setSubmitting(true);
@@ -105,16 +104,6 @@ export function ReviewForm({ bookId }: { bookId: number }) {
       ) : null}
 
       <form onSubmit={onSubmit} className="space-y-3">
-        <div className="space-y-2">
-          <Label htmlFor="userId">User ID (optional)</Label>
-          <Input
-            id="userId"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            inputMode="numeric"
-            placeholder="e.g. 1"
-          />
-        </div>
         <div className="space-y-2">
           <Label htmlFor="rating">Rating (1-5)</Label>
           <Input

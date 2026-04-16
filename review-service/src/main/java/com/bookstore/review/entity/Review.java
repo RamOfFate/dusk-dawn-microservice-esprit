@@ -13,7 +13,7 @@ import java.time.Instant;
 @Entity
 @Table(
         name = "reviews",
-        uniqueConstraints = @UniqueConstraint(name = "uk_reviews_user_book", columnNames = {"user_id", "book_id"})
+        uniqueConstraints = @UniqueConstraint(name = "uk_reviews_customer_book", columnNames = {"customer_name", "book_id"})
 )
 public class Review {
 
@@ -21,8 +21,8 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @Column(name = "customer_name", nullable = false, length = 255)
+    private String customerName;
 
     @Column(name = "book_id", nullable = false)
     private Long bookId;
@@ -47,12 +47,12 @@ public class Review {
         this.id = id;
     }
 
-    public Long getUserId() {
-        return userId;
+    public String getCustomerName() {
+        return customerName;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
 
     public Long getBookId() {

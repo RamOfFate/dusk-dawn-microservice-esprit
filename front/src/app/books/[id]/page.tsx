@@ -12,9 +12,18 @@ import {
   CardTitle,
 } from "~/components/ui/card";
 import { Separator } from "~/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table";
 import { listBooks } from "~/server/services/bookshop";
-import { getAverageRating } from "~/server/services/reviews";
+import { getAverageRating, listReviewsByBook } from "~/server/services/reviews";
 import { ErrorState } from "~/app/_components/error-state";
+import { ReviewForm } from "~/app/reviews/book/[bookId]/review-form";
 
 export default async function BookDetailsPage({
   params,
@@ -33,13 +42,20 @@ export default async function BookDetailsPage({
   if (!book) notFound();
 
   const numericBookId = Number(id);
-  const canLoadReviews = Number.isFinite(numericBookId);
+  const canLoadReviews = Number.isFinite(numericBookId) && numericBookId > 0;
+
   let rating: Awaited<ReturnType<typeof getAverageRating>> | null = null;
+  let pagedReviews: Awaited<ReturnType<typeof listReviewsByBook>> | null = null;
+
   if (canLoadReviews) {
     try {
-      rating = await getAverageRating(numericBookId);
+      [rating, pagedReviews] = await Promise.all([
+        getAverageRating(numericBookId),
+        listReviewsByBook(numericBookId, { sort: "latest", page: 0, size: 20 }),
+      ]);
     } catch {
       rating = null;
+      pagedReviews = null;
     }
   }
 
@@ -115,12 +131,12 @@ export default async function BookDetailsPage({
         <CardHeader>
           <CardTitle>Reviews</CardTitle>
           <CardDescription>
-            Average rating is provided by the Review service.
+            Ratings and comments from the Review service.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="space-y-6">
           {canLoadReviews ? (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">
                 {rating ? rating.averageRating.toFixed(2) : "0.00"} / 5
               </Badge>
@@ -135,18 +151,67 @@ export default async function BookDetailsPage({
             </div>
           )}
 
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
-              <Link href="/reviews">Open reviews</Link>
-            </Button>
-            {canLoadReviews ? (
-              <Button asChild>
-                <Link href={`/reviews/book/${numericBookId}`}>
-                  Reviews for this book
-                </Link>
-              </Button>
-            ) : null}
-          </div>
+          {canLoadReviews ? (
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-2">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-medium">Latest reviews</div>
+                    <div className="text-muted-foreground text-xs">
+                      Showing up to 20.
+                    </div>
+                  </div>
+                </div>
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Rating</TableHead>
+                      <TableHead>Comment</TableHead>
+                      <TableHead>Created</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(pagedReviews?.content ?? []).map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-medium">
+                          {r.customerName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{r.rating} / 5</Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground max-w-120 truncate">
+                          {r.comment ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {r.createdAt}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {!(pagedReviews?.content?.length ?? 0) ? (
+                  <div className="text-muted-foreground py-6 text-sm">
+                    No reviews yet.
+                  </div>
+                ) : null}
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Add a review</CardTitle>
+                  <CardDescription>
+                    You’re posting a review for this book.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ReviewForm bookId={numericBookId} />
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </div>

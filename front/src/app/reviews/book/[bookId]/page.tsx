@@ -94,7 +94,7 @@ export default async function ReviewsByBookPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Rating</TableHead>
                   <TableHead>Comment</TableHead>
                   <TableHead>Created</TableHead>
@@ -103,7 +103,9 @@ export default async function ReviewsByBookPage({
               <TableBody>
                 {(paged?.content ?? []).map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell className="font-medium">{r.userId}</TableCell>
+                    <TableCell className="font-medium">
+                      {r.customerName}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{r.rating} / 5</Badge>
                     </TableCell>

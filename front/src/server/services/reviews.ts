@@ -11,7 +11,7 @@ export type AverageRatingResponse = {
 
 export type ReviewResponse = {
   id: number;
-  userId: number;
+  customerName: string;
   bookId: number;
   rating: number;
   comment?: string | null;
@@ -28,7 +28,7 @@ export type PagedReviewsResponse = {
 };
 
 type ReviewCreateRequest = {
-  userId?: number;
+  customerName: string;
   bookId: number;
   rating: number;
   comment?: string;

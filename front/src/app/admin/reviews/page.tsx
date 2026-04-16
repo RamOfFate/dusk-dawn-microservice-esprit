@@ -30,7 +30,7 @@ import { gatewayDelete, gatewayGet, gatewayPut } from "~/lib/gateway-client";
 
 type Review = {
   id: number;
-  userId: number;
+  customerName: string;
   bookId: number;
   rating: number;
   comment?: string | null;
@@ -208,7 +208,7 @@ export default function AdminReviewsPage() {
                     Editing review #{editing.id}
                   </div>
                   <div className="text-muted-foreground text-sm">
-                    Book {editing.bookId} • User {editing.userId}
+                    Book {editing.bookId} • Customer {editing.customerName}
                   </div>
                 </div>
                 <Button
@@ -277,7 +277,7 @@ export default function AdminReviewsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
-                  <TableHead>User</TableHead>
+                  <TableHead>Customer</TableHead>
                   <TableHead>Rating</TableHead>
                   <TableHead>Comment</TableHead>
                   <TableHead>Created</TableHead>
@@ -289,7 +289,7 @@ export default function AdminReviewsPage() {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.id}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{r.userId}</Badge>
+                      <Badge variant="secondary">{r.customerName}</Badge>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{r.rating}</Badge>

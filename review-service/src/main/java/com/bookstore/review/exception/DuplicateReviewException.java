@@ -2,11 +2,11 @@ package com.bookstore.review.exception;
 
 public class DuplicateReviewException extends RuntimeException {
 
-    public DuplicateReviewException(Long userId, Long bookId) {
-        super("User " + userId + " has already reviewed book " + bookId);
+    public DuplicateReviewException(String customerName, Long bookId) {
+        super("Customer '" + customerName + "' has already reviewed book " + bookId);
     }
 
-    public DuplicateReviewException(Long userId, Long bookId, Throwable cause) {
-        super("User " + userId + " has already reviewed book " + bookId, cause);
+    public DuplicateReviewException(String customerName, Long bookId, Throwable cause) {
+        super("Customer '" + customerName + "' has already reviewed book " + bookId, cause);
     }
 }

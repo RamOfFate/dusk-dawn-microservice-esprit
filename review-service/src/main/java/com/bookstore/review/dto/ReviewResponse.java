@@ -4,7 +4,7 @@ import java.time.Instant;
 
 public record ReviewResponse(
         Long id,
-        Long userId,
+        String customerName,
         Long bookId,
         Integer rating,
         String comment,

@@ -108,10 +108,10 @@ post_json "/orders" "{\"customerName\":\"Bob\",\"orderDate\":\"2026-04-16\",\"to
 
 # --- Reviews ---
 echo "Creating reviews (review-service)..."
-post_json "/reviews" "{\"userId\":${user1_id},\"bookId\":${book1_id},\"rating\":5,\"comment\":\"Excellent read.\"}" >/dev/null
-post_json "/reviews" "{\"userId\":${user2_id},\"bookId\":${book1_id},\"rating\":4,\"comment\":\"Solid, would recommend.\"}" >/dev/null
-post_json "/reviews" "{\"userId\":${user1_id},\"bookId\":${book2_id},\"rating\":3,\"comment\":\"Good but some slow parts.\"}" >/dev/null
-post_json "/reviews" "{\"userId\":${user2_id},\"bookId\":${book2_id},\"rating\":5,\"comment\":\"Loved it.\"}" >/dev/null
+post_json "/reviews" "{\"customerName\":\"Alice\",\"bookId\":${book1_id},\"rating\":5,\"comment\":\"Excellent read.\"}" >/dev/null
+post_json "/reviews" "{\"customerName\":\"Bob\",\"bookId\":${book1_id},\"rating\":4,\"comment\":\"Solid, would recommend.\"}" >/dev/null
+post_json "/reviews" "{\"customerName\":\"Alice\",\"bookId\":${book2_id},\"rating\":3,\"comment\":\"Good but some slow parts.\"}" >/dev/null
+post_json "/reviews" "{\"customerName\":\"Bob\",\"bookId\":${book2_id},\"rating\":5,\"comment\":\"Loved it.\"}" >/dev/null
 
 # --- Recommendation search ---
 echo "Indexing books (recommendation-search-service)..."
