@@ -23,15 +23,42 @@ export class SearchService {
       return { query: q, results: items.map(this.toDto) };
     }
 
-    const items = await this.bookModel
-      .find({ $text: { $search: q } }, {
-        score: { $meta: 'textScore' },
-      } as unknown as undefined)
-      .sort({ score: { $meta: 'textScore' } })
-      .limit(limit)
-      .lean();
+    try {
+      const items = await this.bookModel
+        .find(
+          { $text: { $search: q } },
+          {
+            score: { $meta: 'textScore' },
+          } as unknown as undefined,
+        )
+        .sort({ score: { $meta: 'textScore' } })
+        .limit(limit)
+        .lean();
 
-    return { query: q, results: items.map(this.toDto) };
+      return { query: q, results: items.map(this.toDto) };
+    } catch {
+      // Fallback when Mongo text indexes are missing/not ready.
+      const safe = this.escapeRegExp(q);
+      const rx = new RegExp(safe, 'i');
+
+      const items = await this.bookModel
+        .find({
+          $or: [
+            { title: rx },
+            { author: rx },
+            { description: rx },
+            { categoryName: rx },
+          ],
+        })
+        .limit(limit)
+        .lean();
+
+      return { query: q, results: items.map(this.toDto) };
+    }
+  }
+
+  private escapeRegExp(input: string) {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private toDto(doc: any) {

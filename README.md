@@ -221,12 +221,16 @@ Body:
 
 ### Search & Recommendations (recommendation-search-service)
 
+In Docker, this service auto-syncs and indexes books from the catalog service so the search page works without manual seeding.
+
 | Method | Path | Auth | Description |
 |---|---|---:|---|
 | GET | `/health` | Public | Health check (`{ "status": "ok" }`) |
-| GET | `/search?q=...&limit=...` | Public | Search books (limit 1..50, default 20) |
-| GET | `/recommendations/user/{userId}?limit=...` | Login | Recommendations for a user (limit 1..50, default 12) |
-| POST | `/index/books` | Admin | Upsert/index books (used to build search index) |
+| GET | `/search?q=...&limit=...` | Public | Search books (limit 1..50, default 20). Uses Mongo `$text` when available, with regex fallback. |
+| GET | `/recommendations/user/{userId}?limit=...` | Login | Recommendations for a user (limit 1..50, default 12). Uses Gemini LLM if configured, otherwise falls back to heuristic logic. |
+| GET | `/index/status` | Admin | Index status (count + last sync result) |
+| POST | `/index/sync` | Admin | Trigger a one-shot sync from the catalog service into Mongo |
+| POST | `/index/books` | Admin | Upsert/index books (manual indexing) |
 | POST | `/events` | Login | Track an event (`VIEW` or `PURCHASE`) |
 
 Index books body:
@@ -257,6 +261,11 @@ Create event body:
   "categoryName": "Fiction"
 }
 ```
+
+LLM configuration (do not commit secrets):
+
+- Docker Compose env var: `GOOGLE_AI_STUDIO_API_KEY`
+- Optional: `GEMINI_MODEL` (default `gemini-1.5-flash`)
 
 ## Notes
 

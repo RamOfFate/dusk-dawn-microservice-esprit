@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { IndexedBook, IndexedBookSchema } from '../models/indexed-book.schema';
 import { IndexController } from './index.controller';
+import { BookshopSyncService } from './bookshop-sync.service';
 import { IndexService } from './index.service';
 
 @Module({
@@ -12,7 +13,7 @@ import { IndexService } from './index.service';
     ]),
   ],
   controllers: [IndexController],
-  providers: [IndexService],
+  providers: [IndexService, BookshopSyncService],
   exports: [IndexService],
 })
 export class IndexModule {}

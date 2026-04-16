@@ -7,8 +7,9 @@ import {
 } from 'class-validator';
 
 export class CreateEventDto {
-  @IsNumber()
-  userId!: number;
+  @IsString()
+  @IsNotEmpty()
+  userId!: string;
 
   @IsString()
   @IsNotEmpty()

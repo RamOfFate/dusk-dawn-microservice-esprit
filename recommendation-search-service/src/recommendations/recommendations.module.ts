@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { IndexedBook, IndexedBookSchema } from '../models/indexed-book.schema';
 import { UserEvent, UserEventSchema } from '../models/user-event.schema';
+import { GeminiRecommenderService } from '../llm/gemini-recommender.service';
 import { RecommendationsController } from './recommendations.controller';
 import { RecommendationsService } from './recommendations.service';
 
@@ -14,6 +15,6 @@ import { RecommendationsService } from './recommendations.service';
     ]),
   ],
   controllers: [RecommendationsController],
-  providers: [RecommendationsService],
+  providers: [RecommendationsService, GeminiRecommenderService],
 })
 export class RecommendationsModule {}

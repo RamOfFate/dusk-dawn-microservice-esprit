@@ -22,7 +22,14 @@ import { EurekaModule } from '@hjkltop/nestjs-eureka';
         const uri =
           config.get<string>('MONGODB_URI') ??
           'mongodb://localhost:27017/recommendation_search';
-        return { uri };
+
+        // Ensure indexes (including $text) are created even when NODE_ENV=production
+        // so search works out-of-the-box in Docker.
+        return {
+          uri,
+          autoIndex: true,
+          autoCreate: true,
+        };
       },
     }),
     IndexModule,

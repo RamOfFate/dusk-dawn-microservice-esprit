@@ -13,7 +13,7 @@ export class RecommendationsController {
     @Param('userId') userId: string,
     @Query('limit') limit?: string,
   ) {
-    const uid = Number(userId);
+    const uid = String(userId ?? '').trim();
     const lim = Math.max(1, Math.min(50, Number(limit ?? 12) || 12));
     return this.recommendationsService.recommendForUser(uid, lim);
   }

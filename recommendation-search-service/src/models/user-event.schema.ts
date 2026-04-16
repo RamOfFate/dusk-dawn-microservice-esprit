@@ -7,8 +7,9 @@ export type UserEventType = 'VIEW' | 'PURCHASE';
 
 @Schema({ timestamps: { createdAt: true, updatedAt: false } })
 export class UserEvent {
+  // Keycloak-friendly identifier (e.g. token `sub`), not necessarily numeric.
   @Prop({ required: true, index: true })
-  userId!: number;
+  userId!: string;
 
   @Prop({ required: true, index: true })
   bookId!: string;
