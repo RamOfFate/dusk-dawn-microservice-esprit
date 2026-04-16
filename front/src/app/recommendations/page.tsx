@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import { PageHeader } from "~/app/_components/page-header";
 import { ErrorState } from "~/app/_components/error-state";
+import { useAuth } from "~/components/auth/auth-provider";
 import { Badge } from "~/components/ui/badge";
 import { buttonVariants } from "~/components/ui/button";
 import {
@@ -15,67 +15,48 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
 import { Separator } from "~/components/ui/separator";
 import { gatewayGet } from "~/lib/gateway-client";
 
-type SearchItem = {
+type RecommendationItem = {
   bookId: string;
   title: string;
   author?: string | null;
-  description?: string | null;
   categoryName?: string | null;
   imageUrl?: string | null;
   price?: number | null;
 };
 
-type SearchResponse = {
-  query: string;
-  results: SearchItem[];
+type RecommendationsResponse = {
+  userId: string;
+  strategy: string;
+  results: RecommendationItem[];
+  categories?: string[];
 };
 
-export default function SearchPage() {
-  return (
-    <React.Suspense
-      fallback={
-        <div className="space-y-4">
-          <PageHeader title="Search" description="Loading…" />
-        </div>
-      }
-    >
-      <SearchPageInner />
-    </React.Suspense>
-  );
-}
+export default function RecommendationsPage() {
+  const { initialized, isAuthenticated, login, token, userId } = useAuth();
 
-function SearchPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const q = (searchParams.get("q") ?? "").trim();
-  const limitRaw = (searchParams.get("limit") ?? "20").trim();
-  const limit = Math.max(1, Math.min(50, Number(limitRaw) || 20));
-
-  const [queryInput, setQueryInput] = React.useState(q);
-  const [data, setData] = React.useState<SearchResponse | null>(null);
+  const [data, setData] = React.useState<RecommendationsResponse | null>(null);
   const [error, setError] = React.useState<unknown>(null);
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
-    setQueryInput(q);
-  }, [q]);
+    if (!initialized) return;
+    if (!isAuthenticated) return;
+    if (!token) return;
 
-  React.useEffect(() => {
+    const uid = (userId ?? "").trim();
+    if (!uid) return;
+
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    params.set("limit", String(limit));
-
-    void gatewayGet<SearchResponse>(`/search?${params.toString()}`)
+    void gatewayGet<RecommendationsResponse>(
+      `/recommendations/user/${encodeURIComponent(uid)}?limit=12`,
+      token,
+    )
       .then((res) => {
         if (cancelled) return;
         setData(res ?? null);
@@ -92,19 +73,57 @@ function SearchPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [q, limit]);
+  }, [initialized, isAuthenticated, token, userId]);
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const nextQ = queryInput.trim();
-    const params = new URLSearchParams();
-    if (nextQ) params.set("q", nextQ);
-    params.set("limit", String(limit));
-    router.push(`/search?${params.toString()}`);
+  if (!initialized) {
+    return (
+      <div className="space-y-4">
+        <PageHeader title="Recommendations" description="Loading session…" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Recommendations"
+          description="Sign in to get personalized recommendations."
+          actions={
+            <button
+              className={buttonVariants({ variant: "default" })}
+              onClick={() => login(window.location.href)}
+            >
+              Sign in
+            </button>
+          }
+        />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Why sign in?</CardTitle>
+            <CardDescription>
+              Recommendations are served by the recommendation-search-service
+              and require a Keycloak access token.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-muted-foreground text-sm">
+              After login, this page calls
+              <span className="font-medium">
+                {" "}
+                /recommendations/user/&lt;sub&gt;
+              </span>
+              through the API Gateway.
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (error) {
-    return <ErrorState error={error} title="Search is unavailable" />;
+    return <ErrorState error={error} title="Recommendations are unavailable" />;
   }
 
   const results = data?.results ?? [];
@@ -112,8 +131,8 @@ function SearchPageInner() {
   return (
     <div className="space-y-8">
       <PageHeader
-        title="Search"
-        description="Powered by the recommendation-search-service (Mongo text search index)."
+        title="Recommendations"
+        description="Books picked for you (LLM if configured; otherwise fallback strategy)."
         actions={
           <Link
             className={buttonVariants({ variant: "outline" })}
@@ -126,49 +145,36 @@ function SearchPageInner() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Find books</CardTitle>
-          <CardDescription>Type a query and press enter.</CardDescription>
+          <CardTitle>For you</CardTitle>
+          <CardDescription>
+            Strategy:{" "}
+            <span className="font-medium">{data?.strategy ?? "—"}</span>
+            <span className="text-muted-foreground ml-2 text-xs">
+              User: {(userId ?? "").trim() || "—"}
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end"
-            onSubmit={onSubmit}
-          >
-            <div className="space-y-2">
-              <Label htmlFor="q">Query</Label>
-              <Input
-                id="q"
-                name="q"
-                placeholder="e.g. clean code"
-                value={queryInput}
-                onChange={(e) => setQueryInput(e.target.value)}
-              />
-            </div>
-            <div>
-              <button className={buttonVariants({ variant: "secondary" })}>
-                Search
-              </button>
-            </div>
-          </form>
-
-          <Separator className="my-6" />
-
           <div className="flex items-center justify-between gap-3">
             <div className="text-muted-foreground text-sm">
-              {loading ? (
-                <>Loading…</>
-              ) : q ? (
-                <>
-                  Showing results for <span className="font-medium">{q}</span>
-                </>
-              ) : (
-                <>Showing latest indexed books</>
-              )}
+              {loading ? "Loading…" : "Showing recommended books"}
             </div>
             <Badge variant="outline">{results.length}</Badge>
           </div>
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {data?.categories?.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {data.categories.map((c) => (
+                <Badge key={c} variant="secondary">
+                  {c}
+                </Badge>
+              ))}
+            </div>
+          ) : null}
+
+          <Separator className="my-6" />
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((r) => (
               <Card key={r.bookId} className="overflow-hidden">
                 <CardHeader>
@@ -189,12 +195,6 @@ function SearchPageInner() {
                     ) : null}
                   </div>
 
-                  {r.description ? (
-                    <div className="text-muted-foreground line-clamp-3 text-sm">
-                      {r.description}
-                    </div>
-                  ) : null}
-
                   <Link
                     className={buttonVariants({
                       variant: "outline",
@@ -211,7 +211,8 @@ function SearchPageInner() {
 
           {!results.length && !loading ? (
             <div className="text-muted-foreground pt-6 text-sm">
-              No matches.
+              No recommendations yet. Create a few events (VIEW/PURCHASE) and
+              try again.
             </div>
           ) : null}
         </CardContent>

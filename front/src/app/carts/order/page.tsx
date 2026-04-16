@@ -70,6 +70,20 @@ function lineTotal(cart: Cart, book?: Book) {
 }
 
 export default function CartOrderPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="space-y-4">
+          <PageHeader title="Order" description="Loading…" />
+        </div>
+      }
+    >
+      <CartOrderPageInner />
+    </React.Suspense>
+  );
+}
+
+function CartOrderPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -113,7 +127,9 @@ export default function CartOrderPage() {
           const found = list.find((c) => c.id === cartId);
           if (!found) {
             setCarts([]);
-            setError(new Error("Cart item not found (it may have been deleted)."));
+            setError(
+              new Error("Cart item not found (it may have been deleted)."),
+            );
             return;
           }
           setCarts([found]);
@@ -205,7 +221,9 @@ export default function CartOrderPage() {
     return acc + line.total;
   }, 0);
 
-  const title = isSingle ? `Order cart item #${cartId}` : "Order all cart items";
+  const title = isSingle
+    ? `Order cart item #${cartId}`
+    : "Order all cart items";
 
   async function submit() {
     if (!token) return;
@@ -237,7 +255,10 @@ export default function CartOrderPage() {
     }
 
     try {
-      const endpoint = isSingle && cartId != null ? `/carts/order?cartId=${cartId}` : "/carts/order";
+      const endpoint =
+        isSingle && cartId != null
+          ? `/carts/order?cartId=${cartId}`
+          : "/carts/order";
 
       await gatewayPost(
         endpoint,
@@ -313,7 +334,8 @@ export default function CartOrderPage() {
           <CardHeader>
             <CardTitle>Missing username</CardTitle>
             <CardDescription>
-              Your Keycloak user has no username, so we can’t scope carts to your account.
+              Your Keycloak user has no username, so we can’t scope carts to
+              your account.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -337,7 +359,9 @@ export default function CartOrderPage() {
             </CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-muted-foreground py-6 text-sm">Loading…</div>
+                <div className="text-muted-foreground py-6 text-sm">
+                  Loading…
+                </div>
               ) : !computedLines.length ? (
                 <div className="text-muted-foreground py-6 text-sm">
                   Your cart is empty.
@@ -359,22 +383,30 @@ export default function CartOrderPage() {
                           <TableCell>
                             <div className="font-medium">
                               {book?.title ??
-                                (cart.bookId ? `Book #${cart.bookId}` : "Unknown book")}
+                                (cart.bookId
+                                  ? `Book #${cart.bookId}`
+                                  : "Unknown book")}
                             </div>
                             <div className="text-muted-foreground text-xs">
                               {book?.author ?? ""}
                             </div>
                           </TableCell>
-                          <TableCell className="text-right">{money(unit)}</TableCell>
+                          <TableCell className="text-right">
+                            {money(unit)}
+                          </TableCell>
                           <TableCell className="text-right">{qty}</TableCell>
-                          <TableCell className="text-right">{money(total)}</TableCell>
+                          <TableCell className="text-right">
+                            {money(total)}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
 
                   <div className="mt-4 flex items-center justify-between">
-                    <div className="text-muted-foreground text-sm">Order total</div>
+                    <div className="text-muted-foreground text-sm">
+                      Order total
+                    </div>
                     <Badge variant="secondary">{money(orderTotal)}</Badge>
                   </div>
                 </>
@@ -385,13 +417,19 @@ export default function CartOrderPage() {
           <Card>
             <CardHeader>
               <CardTitle>Shipping</CardTitle>
-              <CardDescription>Address is required. Notes are optional.</CardDescription>
+              <CardDescription>
+                Address is required. Notes are optional.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {submitError ? (
-                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                  <div className="font-medium text-destructive">Order failed</div>
-                  <div className="text-muted-foreground mt-1">{submitError}</div>
+                <div className="border-destructive/40 bg-destructive/5 rounded-md border p-3 text-sm">
+                  <div className="text-destructive font-medium">
+                    Order failed
+                  </div>
+                  <div className="text-muted-foreground mt-1">
+                    {submitError}
+                  </div>
                 </div>
               ) : null}
 
@@ -423,8 +461,15 @@ export default function CartOrderPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void submit()} disabled={busy || loading}>
-                  {busy ? "Placing…" : isSingle ? "Confirm order" : "Confirm order all"}
+                <Button
+                  onClick={() => void submit()}
+                  disabled={busy || loading}
+                >
+                  {busy
+                    ? "Placing…"
+                    : isSingle
+                      ? "Confirm order"
+                      : "Confirm order all"}
                 </Button>
                 <Button asChild variant="outline" disabled={busy}>
                   <Link href="/carts">Cancel</Link>

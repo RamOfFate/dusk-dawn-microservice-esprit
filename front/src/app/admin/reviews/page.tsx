@@ -47,6 +47,20 @@ type PagedReviews = {
 };
 
 export default function AdminReviewsPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="space-y-4">
+          <PageHeader title="Reviews" description="Loading…" />
+        </div>
+      }
+    >
+      <AdminReviewsPageInner />
+    </React.Suspense>
+  );
+}
+
+function AdminReviewsPageInner() {
   const { token } = useAuth();
   const searchParams = useSearchParams();
   const bookIdParam = searchParams.get("bookId");

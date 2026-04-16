@@ -161,6 +161,8 @@ services:
         condition: service_healthy
       eureka-server:
         condition: service_healthy
+      bookshop-service:
+        condition: service_started
     environment:
       - PORT=8083
       - MONGODB_URI=mongodb://mongo-db:27017/recommendation_search

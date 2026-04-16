@@ -16,10 +16,11 @@ export class RecommendationsService {
     private readonly gemini: GeminiRecommenderService,
   ) {}
 
-  async recommendForUser(userId: number, limitRaw: number) {
+  async recommendForUser(userIdRaw: string, limitRaw: number) {
     const limit = this.clampLimit(limitRaw);
+    const userId = String(userIdRaw ?? '').trim();
 
-    if (!Number.isFinite(userId) || userId <= 0) {
+    if (!userId) {
       return {
         userId,
         strategy: 'invalid-user',
@@ -147,7 +148,10 @@ export class RecommendationsService {
 
     if (picked.length < input.candidateLimit) {
       const trending = await this.eventModel
-        .aggregate<{ _id: string; count: number }>([
+        .aggregate<{
+          _id: string;
+          count: number;
+        }>([
           { $group: { _id: '$bookId', count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 50 },
@@ -180,7 +184,7 @@ export class RecommendationsService {
   }
 
   private async legacyRecommend(input: {
-    userId: number;
+    userId: string;
     limit: number;
     categories: string[];
     interactedIds: Set<string>;
@@ -199,7 +203,10 @@ export class RecommendationsService {
 
     if (picked.length < input.limit) {
       const trending = await this.eventModel
-        .aggregate<{ _id: string; count: number }>([
+        .aggregate<{
+          _id: string;
+          count: number;
+        }>([
           { $group: { _id: '$bookId', count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 50 },
@@ -218,9 +225,28 @@ export class RecommendationsService {
       picked = [...picked, ...fill];
     }
 
+    // Cold-start fallback: if there are no events yet (or trending yields no docs),
+    // recommend newest books so the UI is never empty.
+    if (picked.length < input.limit) {
+      const excludeIds = new Set<string>([
+        ...Array.from(input.interactedIds).map(String),
+        ...picked.map((p: any) => String(p.bookId)),
+      ]);
+
+      const newest = await this.bookModel
+        .find({ bookId: { $nin: Array.from(excludeIds) } })
+        .sort({ updatedAt: -1 })
+        .limit(input.limit - picked.length)
+        .lean();
+
+      picked = [...picked, ...newest];
+    }
+
     return {
       userId: input.userId,
-      strategy: input.categories.length ? 'category-affinity+trending' : 'trending',
+      strategy: input.categories.length
+        ? 'category-affinity+trending'
+        : 'trending',
       categories: input.categories,
       results: picked.slice(0, input.limit).map(this.toDto),
     };

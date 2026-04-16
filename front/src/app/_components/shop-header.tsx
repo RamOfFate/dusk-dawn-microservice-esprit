@@ -13,6 +13,7 @@ import {
   Search,
   Shield,
   ShoppingCart,
+  Sparkles,
   Tags,
   Truck,
   User,
@@ -39,6 +40,7 @@ const shopLinks = [
   { href: "/carts", label: "Cart", Icon: ShoppingCart },
   { href: "/orders", label: "Orders", Icon: Truck },
   { href: "/search", label: "Search", Icon: Search },
+  { href: "/recommendations", label: "For you", Icon: Sparkles },
 ];
 
 function initials(value: string | null) {
@@ -49,7 +51,21 @@ function initials(value: string | null) {
   return (a + b).toUpperCase();
 }
 
+function ShopHeaderFallback() {
+  return (
+    <header className="bg-background/80 sticky top-0 z-40 w-full border-b backdrop-blur" />
+  );
+}
+
 export function ShopHeader() {
+  return (
+    <React.Suspense fallback={<ShopHeaderFallback />}>
+      <ShopHeaderInner />
+    </React.Suspense>
+  );
+}
+
+function ShopHeaderInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

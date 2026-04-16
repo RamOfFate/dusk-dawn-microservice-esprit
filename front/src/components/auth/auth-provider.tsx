@@ -9,6 +9,7 @@ type AuthContextValue = {
   initialized: boolean;
   isAuthenticated: boolean;
   username: string | null;
+  userId: string | null;
   roles: string[];
   token: string | null;
   login: (redirectUri?: string) => void;
@@ -39,12 +40,49 @@ function getRealmRoles(tokenParsed: unknown): string[] {
   return Array.from(new Set(cleaned));
 }
 
+function decodeJwtPayload(token: string): unknown {
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+
+  // base64url -> base64
+  let b64 = parts[1]!.replace(/-/g, "+").replace(/_/g, "/");
+  while (b64.length % 4 !== 0) b64 += "=";
+
+  try {
+    const json = atob(b64);
+    return JSON.parse(json) as unknown;
+  } catch {
+    return null;
+  }
+}
+
+function getUserId(
+  tokenParsed: unknown,
+  token: string | undefined,
+): string | null {
+  if (tokenParsed && typeof tokenParsed === "object") {
+    const sub = (tokenParsed as { sub?: unknown }).sub;
+    if (typeof sub === "string" && sub.trim()) return sub.trim();
+  }
+
+  if (token) {
+    const payload = decodeJwtPayload(token);
+    if (payload && typeof payload === "object") {
+      const sub = (payload as { sub?: unknown }).sub;
+      if (typeof sub === "string" && sub.trim()) return sub.trim();
+    }
+  }
+
+  return null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const keycloakRef = React.useRef<Keycloak | null>(null);
 
   const [initialized, setInitialized] = React.useState(false);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [username, setUsername] = React.useState<string | null>(null);
+  const [userId, setUserId] = React.useState<string | null>(null);
   const [roles, setRoles] = React.useState<string[]>([]);
   const [token, setToken] = React.useState<string | null>(null);
 
@@ -64,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUsername(
         (kc.tokenParsed?.preferred_username as string | undefined) ?? null,
       );
+      setUserId(getUserId(kc.tokenParsed, kc.token));
       setRoles(getRealmRoles(kc.tokenParsed));
     };
 
@@ -71,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(false);
       setToken(null);
       setUsername(null);
+      setUserId(null);
       setRoles([]);
     };
 
@@ -79,6 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (refreshed) {
           setToken(kc.token ?? null);
           setRoles(getRealmRoles(kc.tokenParsed));
+          setUsername(
+            (kc.tokenParsed?.preferred_username as string | undefined) ?? null,
+          );
+          setUserId(getUserId(kc.tokenParsed, kc.token));
         }
       });
     };
@@ -96,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUsername(
           (kc.tokenParsed?.preferred_username as string | undefined) ?? null,
         );
+        setUserId(getUserId(kc.tokenParsed, kc.token));
         setRoles(getRealmRoles(kc.tokenParsed));
 
         refreshTimer = window.setInterval(() => {
@@ -108,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 (kc.tokenParsed?.preferred_username as string | undefined) ??
                   null,
               );
+              setUserId(getUserId(kc.tokenParsed, kc.token));
             }
           });
         }, 20_000);
@@ -117,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(false);
         setToken(null);
         setUsername(null);
+        setUserId(null);
         setRoles([]);
       });
 
@@ -146,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initialized,
     isAuthenticated,
     username,
+    userId,
     roles,
     token,
     login,
