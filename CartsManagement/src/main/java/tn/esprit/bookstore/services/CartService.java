@@ -38,10 +38,19 @@ public class CartService {
         return repo.findByCustomerId(customerId);
     }
 
+    public List<Cart> getCartsByCustomerName(String customerName) {
+        return repo.findByCustomerName(customerName);
+    }
+
     public Cart addCart(Cart cart) {
         LocalDateTime now = LocalDateTime.now();
         cart.setCreatedAt(now);
         cart.setUpdatedAt(now);
+
+        if (cart.getQuantity() == null || cart.getQuantity() < 1) {
+            cart.setQuantity(1);
+        }
+
         return repo.save(cart);
     }
 
@@ -56,6 +65,17 @@ public class CartService {
                         existing.setNotes(newCart.getNotes());
                     if (newCart.getCustomerId() != null)
                         existing.setCustomerId(newCart.getCustomerId());
+                    if (newCart.getCustomerName() != null)
+                        existing.setCustomerName(newCart.getCustomerName());
+                    if (newCart.getBookId() != null)
+                        existing.setBookId(newCart.getBookId());
+                    if (newCart.getQuantity() != null)
+                        existing.setQuantity(newCart.getQuantity());
+
+                    if (existing.getQuantity() == null || existing.getQuantity() < 1) {
+                        existing.setQuantity(1);
+                    }
+
                     existing.setUpdatedAt(LocalDateTime.now());
                     return repo.save(existing);
                 });

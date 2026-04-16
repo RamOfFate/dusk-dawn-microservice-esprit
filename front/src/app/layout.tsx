@@ -4,7 +4,8 @@ import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
-import { SiteHeader } from "~/app/_components/site-header";
+import { AuthProvider } from "~/components/auth/auth-provider";
+import { AppChrome } from "~/app/_components/app-chrome";
 
 export const metadata: Metadata = {
   title: "Bookshop",
@@ -24,10 +25,9 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body>
         <TRPCReactProvider>
-          <div className="min-h-dvh">
-            <SiteHeader />
-            <main className="container mx-auto px-4 py-8">{children}</main>
-          </div>
+          <AuthProvider>
+            <AppChrome>{children}</AppChrome>
+          </AuthProvider>
         </TRPCReactProvider>
       </body>
     </html>

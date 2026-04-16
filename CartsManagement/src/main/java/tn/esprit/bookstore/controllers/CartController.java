@@ -40,6 +40,15 @@ public class CartController {
         return ResponseEntity.ok(carts);
     }
 
+    @GetMapping("/customerName/{customerName}")
+    public ResponseEntity<List<Cart>> getCartsByCustomerName(@PathVariable String customerName) {
+        List<Cart> carts = cartService.getCartsByCustomerName(customerName);
+        if (carts.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(carts);
+    }
+
     @PostMapping
     public ResponseEntity<Cart> createCart(@RequestBody Cart cart) {
         Cart saved = cartService.addCart(cart);

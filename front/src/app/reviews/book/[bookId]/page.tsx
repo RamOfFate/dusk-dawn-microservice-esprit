@@ -1,10 +1,10 @@
-import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import { PageHeader } from "~/app/_components/page-header";
+import { ErrorState } from "~/app/_components/error-state";
 import { Badge } from "~/components/ui/badge";
-import { Button, buttonVariants } from "~/components/ui/button";
+import { buttonVariants } from "~/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -12,9 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
-import { Label } from "~/components/ui/label";
-import { Textarea } from "~/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -23,67 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
-import {
-  createReview,
-  getAverageRating,
-  listReviewsByBook,
-} from "~/server/services/reviews";
-import { ErrorState } from "~/app/_components/error-state";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { getFormString } from "~/lib/form-data";
-
-async function createReviewAction(bookId: number, formData: FormData) {
-  "use server";
-
-  const userIdRaw = getFormString(formData, "userId").trim();
-  const ratingRaw = getFormString(formData, "rating").trim();
-  const comment = getFormString(formData, "comment").trim();
-
-  const rating = Number(ratingRaw);
-  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-    const params = new URLSearchParams();
-    params.set("error", "Rating must be a number between 1 and 5.");
-    if (userIdRaw) params.set("userId", userIdRaw);
-    if (comment) params.set("comment", comment);
-    params.set("rating", ratingRaw);
-    redirect(`/reviews/book/${bookId}?${params.toString()}`);
-  }
-
-  try {
-    await createReview({
-      bookId,
-      userId: userIdRaw ? Number(userIdRaw) : undefined,
-      rating,
-      comment: comment || undefined,
-    });
-    revalidatePath(`/reviews/book/${bookId}`);
-  } catch (e) {
-    const params = new URLSearchParams();
-    params.set(
-      "error",
-      e instanceof Error ? e.message : "Failed to submit review",
-    );
-    if (userIdRaw) params.set("userId", userIdRaw);
-    if (comment) params.set("comment", comment);
-    params.set("rating", String(rating));
-    redirect(`/reviews/book/${bookId}?${params.toString()}`);
-  }
-}
+import { getAverageRating, listReviewsByBook } from "~/server/services/reviews";
+import { ReviewForm } from "./review-form";
 
 export default async function ReviewsByBookPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ bookId: string }>;
-  searchParams: Promise<{
-    error?: string;
-    userId?: string;
-    rating?: string;
-    comment?: string;
-  }>;
 }) {
   const { bookId } = await params;
-  const sp = await searchParams;
   const numericBookId = Number(bookId);
 
   if (!Number.isFinite(numericBookId) || numericBookId <= 0) {
@@ -201,53 +146,11 @@ export default async function ReviewsByBookPage({
             <CardHeader>
               <CardTitle>Add a review</CardTitle>
               <CardDescription>
-                This endpoint may require authentication depending on service
-                security.
+                Submitting a review requires signing in.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {sp.error ? (
-                <Alert variant="destructive" className="mb-3">
-                  <AlertTitle>Couldn’t submit review</AlertTitle>
-                  <AlertDescription>{sp.error}</AlertDescription>
-                </Alert>
-              ) : null}
-              <form
-                action={createReviewAction.bind(null, numericBookId)}
-                className="space-y-3"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="userId">User ID (optional)</Label>
-                  <Input
-                    id="userId"
-                    name="userId"
-                    inputMode="numeric"
-                    placeholder="e.g. 1"
-                    defaultValue={sp.userId ?? ""}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rating">Rating (1-5)</Label>
-                  <Input
-                    id="rating"
-                    name="rating"
-                    inputMode="numeric"
-                    placeholder="5"
-                    required
-                    defaultValue={sp.rating ?? ""}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="comment">Comment</Label>
-                  <Textarea
-                    id="comment"
-                    name="comment"
-                    placeholder="Optional..."
-                    defaultValue={sp.comment ?? ""}
-                  />
-                </div>
-                <Button type="submit">Submit</Button>
-              </form>
+              <ReviewForm bookId={numericBookId} />
             </CardContent>
           </Card>
         </div>

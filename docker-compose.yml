@@ -98,6 +98,45 @@ services:
       - mongo_data:/data/db
     restart: unless-stopped
 
+  keycloak-db:
+    image: postgres:16
+    container_name: keycloak-db
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSWORD=keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.1
+    container_name: keycloak
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    command: ["start-dev", "--http-port=8081", "--import-realm"]
+    environment:
+      - KC_DB=postgres
+      - KC_DB_URL_HOST=keycloak-db
+      - KC_DB_URL_DATABASE=keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+      - KC_HEALTH_ENABLED=true
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import:ro
+    restart: unless-stopped
+
   recommendation-search-service:
     build:
       context: ./recommendation-search-service
@@ -106,9 +145,14 @@ services:
     depends_on:
       mongo-db:
         condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     environment:
       - PORT=8083
       - MONGODB_URI=mongodb://mongo-db:27017/recommendation_search
+      - EUREKA_HOST=eureka-server
+      - EUREKA_PORT=8761
+      - EUREKA_SERVICE_NAME=recommendation-search-service
     ports:
       - "8083:8083"
     restart: unless-stopped
@@ -124,7 +168,11 @@ services:
       bookshop-config-server:
         condition: service_healthy
     environment:
-      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - CONFIG_SERVER_URL=http://bookshop-config-server:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     ports:
       - "8080:8080"
@@ -145,7 +193,11 @@ services:
       bookshop-config-server:
         condition: service_healthy
     environment:
-      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - CONFIG_SERVER_URL=http://bookshop-config-server:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/users_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
@@ -167,7 +219,11 @@ services:
       bookshop-config-server:
         condition: service_healthy
     environment:
-      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - CONFIG_SERVER_URL=http://bookshop-config-server:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres-db:5432/job_ms
       - SPRING_DATASOURCE_USERNAME=postgres
@@ -187,7 +243,11 @@ services:
       bookshop-config-server:
         condition: service_healthy
     environment:
-      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - CONFIG_SERVER_URL=http://bookshop-config-server:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     ports:
       - "8084:8084"
@@ -244,9 +304,17 @@ services:
         condition: service_started
       recommendation-search-service:
         condition: service_started
+      keycloak:
+        condition: service_started
     environment:
-      - SPRING_CONFIG_IMPORT=optional:configserver:http://bookshop-config-server:8888
+      - CONFIG_SERVER_URL=http://bookshop-config-server:8888
+      - SPRING_CLOUD_CONFIG_FAIL_FAST=true
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_ATTEMPTS=20
+      - SPRING_CLOUD_CONFIG_RETRY_INITIAL_INTERVAL=2000
+      - SPRING_CLOUD_CONFIG_RETRY_MAX_INTERVAL=10000
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - KEYCLOAK_ISSUER_URI=http://keycloak:8081/realms/bookshop
+      - KEYCLOAK_JWKS_URI=http://keycloak:8081/realms/bookshop/protocol/openid-connect/certs
     ports:
       - "8060:8060"
     restart: unless-stopped
@@ -255,5 +323,6 @@ volumes:
   mysql_data:
   postgres_data:
   mongo_data:
+  keycloak_db_data:
   bookshop_h2:
   cart_h2:

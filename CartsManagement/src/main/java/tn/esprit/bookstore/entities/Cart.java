@@ -13,6 +13,12 @@ public class Cart {
 
     private Integer customerId;
 
+    private String customerName;
+
+    private Integer bookId;
+
+    private Integer quantity;
+
     private Double totalAmount;
 
     private String shippingAddress;
@@ -40,6 +46,15 @@ public class Cart {
 
     public Integer getCustomerId() { return customerId; }
     public void setCustomerId(Integer customerId) { this.customerId = customerId; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public Integer getBookId() { return bookId; }
+    public void setBookId(Integer bookId) { this.bookId = bookId; }
+
+    public Integer getQuantity() { return quantity; }
+    public void setQuantity(Integer quantity) { this.quantity = quantity; }
 
     public Double getTotalAmount() { return totalAmount; }
     public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }

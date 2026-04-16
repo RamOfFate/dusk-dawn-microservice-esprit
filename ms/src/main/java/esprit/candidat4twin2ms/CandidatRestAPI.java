@@ -26,6 +26,12 @@ public class CandidatRestAPI {
     public List<Candidat> getCandidats() {
        return candidatInterface.getCandidats();
     }
+
+    @GetMapping("/customerName/{customerName}")
+    public List<Candidat> getCandidatsByCustomerName(@PathVariable String customerName) {
+        return candidatInterface.getCandidatsByCustomerName(customerName);
+    }
+
     @PostMapping
     public Candidat saveCandidat(@RequestBody Candidat candidat) {
        return candidatInterface.saveCandidat(candidat);

@@ -23,7 +23,7 @@ export default async function ReviewsIndexPage({
     <div className="space-y-8">
       <PageHeader
         title="Reviews"
-        description="Review service uses numeric book IDs (Long)."
+        description="Browse ratings and comments from the Review service."
       />
 
       <Card>

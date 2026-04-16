@@ -30,19 +30,49 @@ public class BookService {
         // If a new Book references an existing Category (id present in JSON),
         // attach the Category to the persistence context to avoid "detached entity passed to persist".
         if (book.getCategory() != null) {
-            Category category = book.getCategory();
-            if (category.getId() != null) {
-                book.setCategory(categoryRepository.getReferenceById(category.getId()));
-            } else {
-                book.setCategory(categoryRepository.save(category));
-            }
+            book.setCategory(resolveCategory(book.getCategory()));
         }
 
         return bookRepository.save(book);
     }
 
+    public Book getBookById(Long id) {
+        return bookRepository.findById(id).orElseThrow(() -> new RuntimeException("Book not found"));
+    }
+
+    public Book updateBook(Long id, Book input) {
+        Book existing = getBookById(id);
+
+        if (input.getTitle() == null || input.getTitle().isEmpty()) {
+            throw new RuntimeException("Book title cannot be empty!");
+        }
+
+        existing.setTitle(input.getTitle());
+        existing.setAuthor(input.getAuthor());
+        existing.setIsbn(input.getIsbn());
+        existing.setPrice(input.getPrice());
+        existing.setDescription(input.getDescription());
+        existing.setImageUrl(input.getImageUrl());
+        existing.setViews(input.getViews());
+
+        if (input.getCategory() == null) {
+            existing.setCategory(null);
+        } else {
+            existing.setCategory(resolveCategory(input.getCategory()));
+        }
+
+        return bookRepository.save(existing);
+    }
+
     public void deleteBook(Long id) {
         bookRepository.deleteById(id);
+    }
+
+    private Category resolveCategory(Category category) {
+        if (category.getId() != null) {
+            return categoryRepository.getReferenceById(category.getId());
+        }
+        return categoryRepository.save(category);
     }
 
     public List<Book> getPopularBooks() {

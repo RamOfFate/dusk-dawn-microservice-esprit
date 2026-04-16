@@ -29,7 +29,7 @@ export default async function BookDetailsPage({
   } catch (e) {
     return <ErrorState error={e} title="Couldn’t load this book" />;
   }
-  const book = books.find((b) => b.id === id);
+  const book = books.find((b) => String(b.id) === id);
   if (!book) notFound();
 
   const numericBookId = Number(id);

@@ -3,6 +3,7 @@ package esprit.candidat4twin2ms;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -22,7 +23,21 @@ public class ServiceCandidat implements ICandidat {
     }
 
     @Override
+    public List<Candidat> getCandidatsByCustomerName(String customerName) {
+        if (customerName == null || customerName.trim().isEmpty()) {
+            return List.of();
+        }
+        return candidatRepository.findByCustomerName(customerName.trim());
+    }
+
+    @Override
     public Candidat saveCandidat(Candidat candidat) {
+        if (candidat.getOrderDate() == null) {
+            candidat.setOrderDate(LocalDateTime.now());
+        }
+        if (candidat.getStatus() == null) {
+            candidat.setStatus(Candidat.OrderStatus.PENDING);
+        }
         return candidatRepository.save(candidat);
     }
 
@@ -38,9 +53,24 @@ public class ServiceCandidat implements ICandidat {
     public Candidat updateCandidat(int id, Candidat c) {
         Candidat existing = candidatRepository.findById(id).orElse(null);
         if (existing != null) {
-            existing.setCustomerName(c.getCustomerName());;
-            existing.setOrderDate(c.getOrderDate());
-            existing.setTotalAmount(c.getTotalAmount());
+            if (c.getCustomerName() != null) {
+                existing.setCustomerName(c.getCustomerName());
+            }
+            if (c.getOrderDate() != null) {
+                existing.setOrderDate(c.getOrderDate());
+            }
+            if (c.getStatus() != null) {
+                existing.setStatus(c.getStatus());
+            }
+            if (c.getTotalAmount() != null) {
+                existing.setTotalAmount(c.getTotalAmount());
+            }
+            if (c.getShippingAddress() != null) {
+                existing.setShippingAddress(c.getShippingAddress());
+            }
+            if (c.getNotes() != null) {
+                existing.setNotes(c.getNotes());
+            }
             return candidatRepository.save(existing);
         }
         return null;

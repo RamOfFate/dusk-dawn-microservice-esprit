@@ -1,8 +1,6 @@
-import Link from "next/link";
-
 import { PageHeader } from "~/app/_components/page-header";
+import { ErrorState } from "~/app/_components/error-state";
 import { Badge } from "~/components/ui/badge";
-import { buttonVariants } from "~/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,21 +11,19 @@ import {
 import { listCategories } from "~/server/services/bookshop";
 
 export default async function CategoriesPage() {
-  const categories = await listCategories();
+  let categories: Awaited<ReturnType<typeof listCategories>> = [];
+
+  try {
+    categories = await listCategories();
+  } catch (e) {
+    return <ErrorState error={e} title="Couldn’t load categories" />;
+  }
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Categories"
         description="Categories from the Bookshop service."
-        actions={
-          <Link
-            className={buttonVariants({ variant: "default" })}
-            href="/categories/new"
-          >
-            New category
-          </Link>
-        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

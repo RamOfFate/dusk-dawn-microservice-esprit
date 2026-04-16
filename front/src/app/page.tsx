@@ -11,7 +11,6 @@ import {
 } from "~/components/ui/card";
 import { buttonVariants } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
-import { Separator } from "~/components/ui/separator";
 import { listCategories, listPopularBooks } from "~/server/services/bookshop";
 
 export default async function Home() {
@@ -43,9 +42,9 @@ export default async function Home() {
               </Link>
               <Link
                 className={buttonVariants({ variant: "outline" })}
-                href="/carts"
+                href="/search"
               >
-                View carts
+                Search
               </Link>
             </div>
           }
@@ -108,57 +107,6 @@ export default async function Home() {
           ) : null}
         </CardContent>
       </Card>
-
-      <Separator />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Admin: Users</CardTitle>
-            <CardDescription>Manage customers.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              className={buttonVariants({ variant: "secondary" })}
-              href="/users"
-            >
-              Open users
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Admin: Orders</CardTitle>
-            <CardDescription>Track statuses and totals.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              className={buttonVariants({ variant: "secondary" })}
-              href="/orders"
-            >
-              Open orders
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Admin: Reviews</CardTitle>
-            <CardDescription>
-              Browse ratings per numeric book ID.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              className={buttonVariants({ variant: "secondary" })}
-              href="/reviews"
-            >
-              Open reviews
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

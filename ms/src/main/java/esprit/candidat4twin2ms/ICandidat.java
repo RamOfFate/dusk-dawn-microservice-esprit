@@ -3,9 +3,15 @@ package esprit.candidat4twin2ms;
 import java.util.List;
 
 public interface ICandidat {
-    public List<Candidat> getCandidats();
-    public Candidat saveCandidat(Candidat candidat);
-    public  Candidat getCandidatById(int id);
-    public  Candidat updateCandidat(int id, Candidat c);
-    public void deleteCandidat(int id);
+    List<Candidat> getCandidats();
+
+    List<Candidat> getCandidatsByCustomerName(String customerName);
+
+    Candidat saveCandidat(Candidat candidat);
+
+    Candidat getCandidatById(int id);
+
+    Candidat updateCandidat(int id, Candidat c);
+
+    void deleteCandidat(int id);
 }

@@ -18,6 +18,11 @@ export const env = createEnv({
    */
   client: {
     NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),
+
+    // Keycloak (browser)
+    NEXT_PUBLIC_KEYCLOAK_URL: z.string().url().optional(),
+    NEXT_PUBLIC_KEYCLOAK_REALM: z.string().min(1).optional(),
+    NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: z.string().min(1).optional(),
   },
 
   /**
@@ -28,6 +33,10 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     API_BASE_URL: process.env.API_BASE_URL,
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+
+    NEXT_PUBLIC_KEYCLOAK_URL: process.env.NEXT_PUBLIC_KEYCLOAK_URL,
+    NEXT_PUBLIC_KEYCLOAK_REALM: process.env.NEXT_PUBLIC_KEYCLOAK_REALM,
+    NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially

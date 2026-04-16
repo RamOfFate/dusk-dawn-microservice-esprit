@@ -3,6 +3,12 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8060}"
 
+KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8081}"
+KEYCLOAK_REALM="${KEYCLOAK_REALM:-bookshop}"
+KEYCLOAK_CLIENT_ID="${KEYCLOAK_CLIENT_ID:-front}"
+KEYCLOAK_USERNAME="${KEYCLOAK_USERNAME:-admin}"
+KEYCLOAK_PASSWORD="${KEYCLOAK_PASSWORD:-admin123}"
+
 wait_for() {
   local url="$1"
   local tries="${2:-60}"
@@ -26,14 +32,38 @@ print(obj.get("$field"))
 PY
 }
 
+get_keycloak_token() {
+  curl -fsS -X POST \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token" \
+    -d "grant_type=password" \
+    -d "client_id=${KEYCLOAK_CLIENT_ID}" \
+    -d "username=${KEYCLOAK_USERNAME}" \
+    -d "password=${KEYCLOAK_PASSWORD}" \
+    | python3 - <<'PY'
+import json,sys
+print(json.load(sys.stdin)["access_token"])
+PY
+}
+
 post_json() {
   local path="$1"
   local body="$2"
-  curl -fsS -H 'Content-Type: application/json' -X POST "${BASE_URL}${path}" -d "$body"
+  curl -fsS \
+    -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+    -X POST "${BASE_URL}${path}" \
+    -d "$body"
 }
 
-echo "Waiting for gateway + bookshop route..."
-wait_for "${BASE_URL}/api/books" 90 2
+echo "Waiting for gateway..."
+wait_for "${BASE_URL}/api/books/ping" 90 2
+
+echo "Waiting for Keycloak realm (${KEYCLOAK_REALM})..."
+wait_for "${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/.well-known/openid-configuration" 90 2
+
+echo "Fetching admin token from Keycloak (${KEYCLOAK_REALM})..."
+ACCESS_TOKEN="$(get_keycloak_token)"
 
 # --- Bookshop: categories + books ---
 echo "Creating categories (bookshop)..."

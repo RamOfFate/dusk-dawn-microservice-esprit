@@ -31,10 +31,10 @@ export default async function BooksPage() {
         description="Browse all books and the most viewed (popular) selection."
         actions={
           <Link
-            className={buttonVariants({ variant: "default" })}
-            href="/books/new"
+            className={buttonVariants({ variant: "outline" })}
+            href="/search"
           >
-            New book
+            Search
           </Link>
         }
       />
